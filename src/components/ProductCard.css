@@ -1,0 +1,22 @@
+/* prototype: collection cards */
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:var(--space-8)}
+.pcard{display:block}
+.pcard .frame{aspect-ratio:4/5}
+.pcard .frame svg.bag{height:70%}
+.pcard:hover .frame svg.bag{transform:translateY(-10px)}
+.pcard-body{padding-top:20px}
+.pcard-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+.pcard-name{font-family:var(--font-display);font-size:24px;letter-spacing:-.03em;font-weight:500}
+.pcard-price{font-size:17px;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
+.pcard-price small{font-size:13px;color:var(--ink-muted);font-weight:400;margin-left:4px}
+.pcard-meta{margin-top:6px;display:flex;gap:10px;align-items:center;color:var(--ink-muted);font-size:14px;flex-wrap:wrap;row-gap:0}
+.pcard-checks{margin-top:18px;padding-top:14px;border-top:1px solid var(--hairline);display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-muted)}
+.pcard .link-arrow{margin-top:20px}
+.grades{margin-top:40px;display:flex;gap:32px;flex-wrap:wrap;font-size:13px;color:var(--ink-muted)}
+.grades b{color:var(--ink);font-weight:500;margin-right:8px}
+
+@container app (max-width:720px){
+  .cards{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 20px;gap:12px;margin:40px -20px 0;padding:0 20px;scrollbar-width:none}
+  .cards .pcard{flex:0 0 84%;scroll-snap-align:start}
+  .pcard-name{font-size:22px}
+}

@@ -1,0 +1,24 @@
+/* prototype: nav / menu-sheet */
+.nav{position:sticky;top:0;z-index:40;background:var(--paper);transition:border-color .3s;border-bottom:1px solid transparent}
+.nav.is-scrolled{border-bottom-color:var(--hairline)}
+.nav-in{height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;gap:24px}
+.logo{font-family:"Inter Tight",var(--font-sans);font-size:18px;letter-spacing:.08em;font-weight:600;display:inline-flex;align-items:baseline}
+.logo .re{font-weight:300}
+.nav-links{display:flex;gap:40px;position:absolute;left:50%;transform:translateX(-50%)}
+.nav-links a,.nav-links button{font-family:"Inter Tight",var(--font-sans);font-size:12px;letter-spacing:.14em;font-weight:500;padding:6px 0;border-bottom:1px solid transparent}
+.nav-links a:hover,.nav-links button:hover{border-bottom-color:var(--ink)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-menu{display:none;font-size:14px;font-weight:500}
+
+.menu-sheet{position:fixed;inset:0;background:var(--paper);z-index:60;display:flex;flex-direction:column;padding:0 20px 32px}
+.menu-sheet .mlinks{display:flex;flex-direction:column;margin-top:32px}
+.menu-sheet .mlinks button{font-family:var(--font-display);font-size:36px;letter-spacing:-.03em;font-weight:500;padding:14px 0;border-bottom:1px solid var(--hairline);text-align:left}
+.menu-foot{margin-top:auto}
+
+@container app (max-width:1080px){ .nav-links{gap:24px} }
+@container app (max-width:860px){ .nav-links{display:none} }
+@container app (max-width:720px){
+  .nav-in{height:60px}
+  .nav-links,.nav .btn{display:none}
+  .nav-menu{display:inline-flex}
+}

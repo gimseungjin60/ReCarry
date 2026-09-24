@@ -1,0 +1,14 @@
+/* prototype: booking stepper (desktop 4-up / mobile progress bar) */
+.stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:40px}
+.stepper button{text-align:left;display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;padding-top:14px;border-top:2px solid var(--hairline);color:var(--ink-muted)}
+.stepper button.on,.stepper button.done{border-top-color:var(--ink);color:var(--ink)}
+.stepper .s{display:block}
+.stepper .t{display:block;font-size:17px;font-weight:500;margin-top:4px;letter-spacing:-.01em}
+.stepper-m{display:none}
+.stepper-m .bar{height:2px;background:var(--hairline);margin-top:10px;position:relative}
+.stepper-m .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink);transition:width .4s var(--ease)}
+
+@container app (max-width:720px){
+  .stepper{display:none}
+  .stepper-m{display:block;margin-top:16px}
+}

@@ -1,0 +1,15 @@
+/* prototype: carrier passport (.ptag) — night block 위에 놓이는 것을 전제로 한다 */
+.ptag{background:var(--night-raised);border:1px solid var(--night-line);padding:28px;position:relative;color:var(--on-night)}
+.ptag::before{content:"";position:absolute;top:28px;right:28px;width:14px;height:14px;border-radius:50%;border:1px solid var(--on-night-muted)}
+.ptag .stripe{height:8px;background:var(--signal);margin:-28px -28px 24px}
+.ptag .label{color:var(--on-night-muted)}
+.ptag .id{font-family:var(--font-mono);font-size:30px;letter-spacing:.02em;margin-top:10px}
+.ptag dl{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;margin:28px 0 0;padding-top:22px;border-top:1px dashed var(--night-line)}
+.ptag dt{font-family:"Inter Tight",sans-serif;font-size:11px;letter-spacing:.14em;color:var(--on-night-muted);text-transform:uppercase}
+.ptag dd{margin:4px 0 0;font-size:15px}
+
+@container app (max-width:720px){
+  .ptag{padding:22px}
+  .ptag .stripe{margin:-22px -22px 20px}
+  .ptag .id{font-size:24px}
+}

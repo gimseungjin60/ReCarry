@@ -1,0 +1,13 @@
+/* prototype: booking side summary */
+.bk-side{grid-column:9/13;position:sticky;top:calc(var(--nav-h) + 24px);background:var(--canvas);padding:28px}
+.bk-side .frame{aspect-ratio:16/10;background:var(--stone)}
+.bk-side .frame svg.bag{height:84%;margin-bottom:4%}
+.sum{margin:20px 0 0;font-size:14px}
+.sum div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--hairline)}
+.sum dt{color:var(--ink-muted)}
+.sum dd{margin:0;text-align:right}
+.sum .tot{border-bottom:0;padding-top:16px;font-size:18px;font-weight:500}
+.sum .tot dt{color:var(--ink)}
+
+@container app (max-width:1080px){ .bk-side{grid-column:8/13} }
+@container app (max-width:720px){ .bk-side{display:none} }

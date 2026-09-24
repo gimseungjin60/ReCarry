@@ -1,0 +1,11 @@
+/* prototype: footer */
+.foot{padding:72px 0 40px;border-top:1px solid var(--hairline)}
+.foot .grid>div{grid-column:span 3}
+.foot .fl{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink-muted);margin-top:16px;align-items:flex-start}
+.foot .fl a:hover,.foot .fl button:hover{color:var(--ink)}
+.foot .bottom{margin-top:72px;display:flex;justify-content:space-between;gap:16px;font-size:13px;color:var(--ink-muted)}
+
+@container app (max-width:720px){
+  .foot .grid>div{margin-bottom:32px}
+  .foot .bottom{flex-direction:column;gap:6px;margin-top:24px}
+}

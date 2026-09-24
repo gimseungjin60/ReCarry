@@ -97,3 +97,6 @@ h1,h2,h3,h4,p{margin:0;font-weight:inherit}
   .lead{font-size:16px}
   .br-d{display:none}
 }
+
+/* 홈 내부 앵커 이동 시 sticky nav 에 가려지지 않도록 */
+section[id]{scroll-margin-top:var(--nav-h)}
