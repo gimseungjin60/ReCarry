@@ -1,0 +1,91 @@
+/* ============================================================
+   RECARRY design tokens
+   Source of truth: prototype/recarry-prototype-v2.html (:root)
+   DESIGN.md의 7색은 여기 ink / forest / sand / canvas / stone /
+   night / signal 과 1:1로 대응한다. 나머지는 파생 토큰.
+   값을 바꿀 때는 반드시 이 파일에서만 바꾼다.
+   ============================================================ */
+:root{
+  /* surface */
+  --paper:#ffffff;
+  --canvas:#f6f4ef;
+  --stone:#e9e5dd;
+  --sand:#e3d8c5;
+  --sand-deep:#cdbca1;
+
+  /* ink */
+  --ink:#141413;
+  --charcoal:#2b2b29;
+  --ink-muted:#5f5e5a;
+  --hairline:#dedad2;
+  --line-strong:#8c8880;
+  --sand-ink:#5a5142;
+
+  /* forest block */
+  --forest:#1e3b2f;
+  --forest-line:#3f5f51;
+  --on-forest:#efebe2;
+  --on-forest-muted:#b3c0b6;
+
+  /* night block */
+  --night:#121211;
+  --night-raised:#1d1d1b;
+  --night-line:#34332f;
+  --on-night:#f2efe9;
+  --on-night-muted:#a3a098;
+
+  /* accent */
+  --signal:#c4592b;
+  --signal-ink:#a64a22;
+  --focus:#141413;
+
+  /* type */
+  --font-display:"Inter Tight","Pretendard Variable",Pretendard,"Noto Sans KR","Noto Sans CJK KR",-apple-system,"Apple SD Gothic Neo",sans-serif;
+  --font-sans:"Pretendard Variable",Pretendard,"Inter Tight","Noto Sans KR","Noto Sans CJK KR",-apple-system,"Apple SD Gothic Neo",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+
+  /* space */
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;
+  --space-7:48px;--space-8:64px;--space-9:96px;--space-10:128px;--space-11:160px;
+
+  /* shape / motion */
+  --radius-0:0px;--radius-sm:4px;--radius-pill:999px;
+  --nav-h:72px;
+  --ease:cubic-bezier(.2,.7,.1,1);
+}
+
+/* Tailwind utility 노출. 값은 위 :root 하나만 참조한다(중복 정의 금지).
+   → bg-forest, text-ink-muted, border-hairline, font-display ... 사용 가능 */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-canvas: var(--canvas);
+  --color-stone: var(--stone);
+  --color-sand: var(--sand);
+  --color-sand-deep: var(--sand-deep);
+  --color-ink: var(--ink);
+  --color-charcoal: var(--charcoal);
+  --color-ink-muted: var(--ink-muted);
+  --color-hairline: var(--hairline);
+  --color-line-strong: var(--line-strong);
+  --color-sand-ink: var(--sand-ink);
+  --color-forest: var(--forest);
+  --color-forest-line: var(--forest-line);
+  --color-on-forest: var(--on-forest);
+  --color-on-forest-muted: var(--on-forest-muted);
+  --color-night: var(--night);
+  --color-night-raised: var(--night-raised);
+  --color-night-line: var(--night-line);
+  --color-on-night: var(--on-night);
+  --color-on-night-muted: var(--on-night-muted);
+  --color-signal: var(--signal);
+  --color-signal-ink: var(--signal-ink);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: var(--radius-sm);
+  --radius-pill: var(--radius-pill);
+
+  --ease-brand: var(--ease);
+}

@@ -1,0 +1,99 @@
+/* ============================================================
+   RECARRY base — reset / layout / typography / primitives
+   Ported verbatim from prototype/recarry-prototype-v2.html.
+   섹션 전용 스타일은 여기 두지 않는다 (컴포넌트 옆 .css 로 분리).
+   ============================================================ */
+
+/* ---------- reset ---------- */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-sans);font-size:16px;line-height:1.75;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;word-break:keep-all;overflow-wrap:break-word}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+h1,h2,h3,h4,p{margin:0;font-weight:inherit}
+
+/* container query 기준점. clamp()의 cqi 단위가 여기에 묶여 있으므로 제거 금지. */
+#app{container-type:inline-size;container-name:app;background:var(--paper);min-height:100vh;position:relative}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1440px;margin:0 auto;padding:0 40px}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px}
+.sec{padding:var(--space-11) 0}
+.sec-tight{padding:var(--space-10) 0}
+.blk-forest{background:var(--forest);color:var(--on-forest);--focus:var(--on-forest)}
+.blk-night{background:var(--night);color:var(--on-night);--focus:var(--on-night)}
+.blk-sand{background:var(--sand)}
+.blk-canvas{background:var(--canvas)}
+
+/* ---------- typography ---------- */
+.d-xl{font-family:var(--font-display);font-weight:500;font-size:clamp(44px,6.4cqi,100px);line-height:1.04;letter-spacing:-.045em}
+.d-l{font-family:var(--font-display);font-weight:500;font-size:clamp(34px,4.4cqi,68px);line-height:1.12;letter-spacing:-.04em}
+.d-m{font-family:var(--font-display);font-weight:500;font-size:clamp(28px,3cqi,44px);line-height:1.2;letter-spacing:-.03em}
+.d-latin{font-family:"Inter Tight",var(--font-display);font-weight:400;font-size:clamp(48px,8.4cqi,136px);line-height:.92;letter-spacing:-.05em;text-transform:uppercase}
+.t-title{font-size:22px;line-height:1.4;font-weight:500;letter-spacing:-.02em}
+.lead{font-size:18px;line-height:1.75;color:var(--charcoal)}
+.small{font-size:14px;line-height:1.65;color:var(--ink-muted)}
+.label{font-family:"Inter Tight",var(--font-sans);font-size:12px;line-height:16px;letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+.mono{font-family:var(--font-mono);font-size:12px;line-height:18px;letter-spacing:.02em}
+.muted{color:var(--ink-muted)}
+.blk-forest .muted{color:var(--on-forest-muted)}
+.blk-night .muted{color:var(--on-night-muted)}
+.idx{display:flex;gap:12px;align-items:center;color:var(--ink-muted)}
+.idx::after{content:"";width:40px;height:1px;background:currentColor;opacity:.5}
+.blk-forest .idx{color:var(--on-forest-muted)}
+.blk-night .idx{color:var(--on-night-muted)}
+
+/* ---------- buttons / links ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;height:52px;padding:0 26px;border-radius:var(--radius-pill);
+  font-size:15px;font-weight:500;letter-spacing:-.01em;border:1px solid transparent;white-space:nowrap;
+  transition:background .25s var(--ease),color .25s var(--ease),border-color .25s}
+.btn .arr{transition:transform .3s var(--ease)}
+.btn:hover .arr{transform:translateX(4px)}
+.btn-primary{background:var(--ink);color:var(--paper)}
+.btn-primary:hover{background:#000}
+.btn-secondary{border-color:var(--ink);color:var(--ink)}
+.btn-secondary:hover{background:var(--ink);color:var(--paper)}
+.btn-light{background:var(--paper);color:var(--ink)}
+.btn-light:hover{background:var(--sand)}
+.btn-sm{height:40px;padding:0 18px;font-size:14px}
+.btn-block{width:100%}
+.btn[disabled]{background:var(--hairline);color:var(--ink-muted);cursor:not-allowed}
+.link{text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:1px}
+.link-arrow{display:inline-flex;gap:8px;align-items:center;font-size:15px;font-weight:500;border-bottom:1px solid currentColor;padding-bottom:3px}
+.link-arrow .arr{transition:transform .3s var(--ease)}
+.link-arrow:hover .arr{transform:translateX(4px)}
+
+/* ---------- primitives ---------- */
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 8px;border:1px solid currentColor;border-radius:var(--radius-sm);
+  font-family:"Inter Tight",var(--font-sans);font-size:11px;letter-spacing:.12em;font-weight:500;text-transform:uppercase}
+.tag-solid{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* 미디어 프레임: 사진(.ph) 또는 SVG 캐리어(.bag)를 담는 공통 컨테이너 */
+.frame{position:relative;overflow:hidden;background:var(--stone);display:flex;align-items:flex-end;justify-content:center}
+.frame svg.bag{height:78%;width:auto;margin-bottom:6%;transition:transform .8s var(--ease)}
+.frame .corner{position:absolute;top:20px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:flex-start;z-index:1}
+.frame svg.crop{height:100%;width:100%;margin:0}
+
+/* 사진 슬롯. 크롭은 object-position 으로만 조정한다. */
+.ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--forest);margin-right:8px;vertical-align:middle;position:relative;top:-1px}
+
+/* ---------- responsive (container query — media query로 바꾸지 말 것) ---------- */
+@container app (max-width:1080px){
+  .wrap{padding:0 32px}
+}
+@container app (max-width:720px){
+  :root,#app{--nav-h:60px}
+  .wrap{padding:0 20px}
+  .grid{grid-template-columns:minmax(0,1fr);row-gap:0}
+  .grid>*{grid-column:1/-1 !important}
+  .sec{padding:var(--space-9) 0}
+  .sec-tight{padding:var(--space-8) 0}
+  .lead{font-size:16px}
+  .br-d{display:none}
+}
