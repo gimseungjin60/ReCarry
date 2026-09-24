@@ -1,0 +1,12 @@
+/* prototype: before / after 비교 슬라이더 (.compare). 그리드 위치는 사용하는 쪽에서 정한다. */
+.compare{position:relative;aspect-ratio:4/5;overflow:hidden;user-select:none;background:#bdb8ae}
+.compare .layer{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center}
+.compare .layer svg.bag{height:66%;width:auto;margin-bottom:8%}
+.compare .before{background:#c9c4ba}
+.compare .after{background:var(--stone)}
+.compare .lbl{position:absolute;top:20px;font-family:var(--font-mono);font-size:12px;padding:4px 8px;background:var(--night);color:var(--on-night)}
+.compare .before .lbl{left:20px}
+.compare .after .lbl{right:20px}
+.compare .bar{position:absolute;top:0;bottom:0;width:1px;background:var(--paper);pointer-events:none}
+.compare .knob{position:absolute;top:50%;left:50%;width:52px;height:52px;border-radius:50%;background:var(--paper);color:var(--ink);transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;font-size:13px;letter-spacing:.05em}
+.compare input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}

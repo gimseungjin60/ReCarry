@@ -1,0 +1,147 @@
+/* ============================================================
+   Home 섹션 스타일. prototype/recarry-prototype-v2.html 의
+   V2 hero / WHY / PROCESS / STORY / WHY RENT / CTA 규칙을 그대로 옮겼다.
+   (collection 카드·passport 는 각 컴포넌트 CSS 에 있다)
+   ============================================================ */
+
+/* ---------- hero (V2 full-bleed photo) ---------- */
+.hero-actions{display:flex;gap:24px;align-items:center;margin-top:48px;flex-wrap:wrap}
+.hero2{position:relative;height:clamp(620px,calc(100vh - var(--nav-h)),880px);overflow:hidden;background:var(--night);color:var(--on-night);--focus:var(--on-night)}
+.hero2::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(0deg,rgba(18,18,17,.9) 0%,rgba(18,18,17,.76) 38%,rgba(18,18,17,.34) 60%,rgba(18,18,17,0) 76%)}
+.hero2>*:not(.ph){position:relative;z-index:2}
+.hero2-top{position:absolute !important;top:28px;left:0;right:0;display:flex;justify-content:space-between;gap:16px;color:var(--on-night)}
+.hero2-in{position:absolute !important;left:0;right:0;bottom:84px}
+.hero2-copy{grid-column:5/13}
+.hero2 .d-xl{font-size:clamp(40px,5.4cqi,80px);color:var(--on-night)}
+.hero2 .lead{color:var(--on-night);margin-top:24px;max-width:440px}
+.hero2 .hero-actions{margin-top:40px}
+.hero2 .link-arrow{color:var(--on-night)}
+.hero2-loop{position:absolute !important;left:0;right:0;bottom:30px;display:flex;flex-wrap:wrap;gap:8px 10px;color:var(--on-night-muted)}
+.hero2-loop b{color:var(--on-night);font-weight:500}
+
+/* ---------- why ---------- */
+.why-head{grid-column:1/9}
+.why-note{grid-column:9/13;align-self:end;max-width:340px}
+.why-frames{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin-top:var(--space-9)}
+.why-frames figure{margin:0}
+.why-frames .frame{aspect-ratio:3/4}
+.why-frames .frame svg.bag{height:62%}
+.why-frames figcaption{padding-top:20px;border-top:1px solid var(--ink);margin-top:20px}
+.why-frames figcaption .t{font-size:18px;font-weight:500;letter-spacing:-.02em;margin:6px 0 4px}
+.why-rail{display:flex;align-items:center;gap:12px;margin-top:var(--space-8);color:var(--ink-muted)}
+.why-rail::before,.why-rail::after{content:"";flex:1;height:1px;background:var(--hairline)}
+
+/* ---------- process ---------- */
+.proc-head{grid-column:1/8}
+.proc-head p{margin-top:24px;max-width:420px}
+.proc-body{margin-top:var(--space-9);align-items:center}
+.ring-wrap{grid-column:1/7;position:relative;aspect-ratio:1/1;max-width:560px;width:100%}
+.ring-wrap svg{width:100%;height:100%}
+.ring-track{fill:none;stroke:var(--forest-line);stroke-width:1}
+.ring-prog{fill:none;stroke:var(--on-forest);stroke-width:1.5;transition:stroke-dashoffset .9s var(--ease)}
+.ring-node{fill:var(--forest);stroke:var(--on-forest-muted);stroke-width:1;transition:all .4s}
+.ring-node.done{fill:var(--on-forest);stroke:var(--on-forest)}
+.ring-label{fill:var(--on-forest-muted);font-family:"Inter Tight",sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.ring-label.on{fill:var(--on-forest)}
+.ring-traveler{transition:transform .9s var(--ease)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+.ring-center .n{font-family:var(--font-mono);font-size:13px;color:var(--on-forest-muted)}
+.ring-center .w{font-family:var(--font-display);font-size:clamp(36px,4cqi,60px);letter-spacing:-.04em;font-weight:500;line-height:1.1;margin-top:8px}
+.ring-center .e{font-family:"Inter Tight",sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--on-forest-muted);margin-top:10px}
+.proc-list{grid-column:8/13;list-style:none;margin:0;padding:0}
+.proc-list li{border-top:1px solid var(--forest-line)}
+.proc-list li:last-child{border-bottom:1px solid var(--forest-line)}
+.proc-list button{width:100%;text-align:left;display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:baseline;padding:18px 0;color:var(--on-forest-muted);transition:color .3s}
+.proc-list .nm{font-size:20px;letter-spacing:-.02em;font-weight:500}
+.proc-list .desc{grid-column:2/4;font-size:15px;line-height:1.7;max-height:0;overflow:hidden;opacity:0;transition:max-height .5s var(--ease),opacity .4s}
+.proc-list li.on button{color:var(--on-forest)}
+.proc-list li.on .desc{max-height:80px;opacity:1;color:var(--on-forest-muted)}
+
+/* ---------- collection ---------- */
+.col-head{align-items:end}
+.col-head .l{grid-column:1/8}
+.col-head .r{grid-column:9/13}
+
+/* ---------- story ---------- */
+.story-head{align-items:end}
+.story-head .l{grid-column:1/8}
+.story-head .d-latin{font-size:clamp(44px,6.6cqi,104px)}
+.story-line{font-family:var(--font-display);font-size:clamp(22px,2.3cqi,32px);line-height:1.4;letter-spacing:-.025em;font-weight:500;margin-top:48px;color:var(--on-night)}
+.story-note{margin-top:20px;max-width:440px}
+.story-fig{grid-column:9/13;margin:0;align-self:end}
+.story-fig .ph{position:relative;aspect-ratio:3/4;height:auto;background:var(--night-raised)}
+.story-fig figcaption{margin-top:14px}
+.story-body{margin-top:var(--space-9);align-items:start}
+.story-body .compare{grid-column:1/7}
+.passport{grid-column:8/13}
+
+/* ---------- why rent ---------- */
+.rent2{align-items:start}
+.rent-fig{grid-column:1/6;margin:0}
+.rent-fig .ph{position:relative;aspect-ratio:3/4;height:auto;background:var(--stone)}
+.rent-fig figcaption{margin-top:14px}
+.rent-txt{grid-column:7/13}
+.rent-l p{margin-top:28px;max-width:320px}
+.rent-r{list-style:none;margin:56px 0 0;padding:0}
+.rent-r li{display:grid;grid-template-columns:56px 1fr;gap:8px 16px;padding:32px 0;border-top:1px solid var(--hairline)}
+.rent-r li:last-child{border-bottom:1px solid var(--hairline)}
+.rent-r .n{color:var(--ink-muted);padding-top:8px}
+.rent-r .t{font-family:var(--font-display);font-size:clamp(24px,2.4cqi,34px);letter-spacing:-.03em;font-weight:500;line-height:1.2}
+.rent-r .s{grid-column:2;color:var(--ink-muted);font-size:15px}
+
+/* ---------- cta ---------- */
+.cta{position:relative;overflow:hidden}
+.cta .grid{align-items:end}
+.cta-copy{grid-column:1/9;position:relative;z-index:1}
+.cta-copy .pre{color:var(--sand-ink)}
+.cta-copy .btn{margin-top:56px}
+.cta-art{grid-column:9/13;display:flex;justify-content:flex-end;align-self:end;margin-bottom:calc(-1 * var(--space-11))}
+.cta-art svg{height:520px;width:auto}
+
+@container app (max-width:1080px){
+  .hero2-copy{grid-column:4/13}
+  .ring-wrap{grid-column:1/7}
+  .proc-list{grid-column:7/13}
+}
+@container app (max-width:720px){
+  .hero2{height:auto;display:flex;flex-direction:column}
+  .hero2 .ph{position:relative;height:440px;object-position:22% 50% !important}
+  .hero2::after{background:linear-gradient(0deg,var(--night) 0%,var(--night) calc(100% - 440px),rgba(18,18,17,.55) calc(100% - 440px + 1px),rgba(18,18,17,0) calc(100% - 260px))}
+  .hero2-top{top:20px;flex-direction:column;gap:4px}
+  .hero2-in{position:relative !important;bottom:auto;padding-top:32px}
+  .hero2 .d-xl{font-size:38px}
+  .hero2 .lead{margin-top:16px}
+  .hero2 .hero-actions{margin-top:28px}
+  .hero2 .hero-actions .btn{width:100%}
+  .hero2-loop{position:relative !important;bottom:auto;padding-top:28px;padding-bottom:36px}
+
+  .why-note{margin-top:24px}
+  .why-frames{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 20px;gap:12px;margin:48px -20px 0;padding:0 20px;scrollbar-width:none}
+  .why-frames figure{flex:0 0 72%;scroll-snap-align:start}
+  .why-rail{display:none}
+
+  .proc-body{margin-top:48px}
+  .ring-wrap{max-width:340px;margin:0 auto 40px}
+  .ring-label{display:none}
+
+  .col-head .r{margin-top:20px}
+
+  .story-line{margin-top:28px}
+  .story-fig{margin:40px -20px 0}
+  .story-fig figcaption{padding:0 20px}
+  .story-fig .ph{aspect-ratio:4/5}
+  .story-body{margin-top:48px}
+  .story-body .compare{margin:0 -20px 40px}
+
+  .rent-fig{margin:0 -20px 48px}
+  .rent-fig figcaption{padding:0 20px}
+  .rent-fig .ph{aspect-ratio:4/5}
+  .rent-r{margin-top:40px}
+  .rent-r li{grid-template-columns:40px 1fr;padding:24px 0}
+
+  .cta-copy .d-l{font-size:30px}
+  .cta-copy .btn{width:100%;margin-top:40px}
+  .cta-art{justify-content:center;margin-top:40px;margin-bottom:calc(-1 * var(--space-9))}
+  .cta-art svg{height:300px}
+}
