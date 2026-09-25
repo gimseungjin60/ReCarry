@@ -11,8 +11,8 @@ services:
                                        # 상시 가동이 필요해지면 starter(0.5 CPU, 유료)로 바꾼다
     numInstances: 1                    # free 는 1대 고정. 로그인 실패 제한도 인스턴스 메모리 기준 (잠들면 초기화)
     rootDir: backend                   # backend/ 밖(프론트) 변경은 재배포하지 않는다
-    dockerfilePath: ./backend/Dockerfile   # 경로는 저장소 루트 기준
-    dockerContext: ./backend               # backend/.dockerignore 가 .env* 를 막는다
+    dockerfilePath: ./Dockerfile       # rootDir(backend/) 기준 — 실제 빌드에서 확인됨 (./backend/... 는 backend/backend 로 풀린다)
+    dockerContext: .                   # = backend/ — backend/.dockerignore 가 .env* 를 막는다
     healthCheckPath: /api/health       # DB select 1 포함, 5초 안에 2xx
     autoDeployTrigger: commit
     envVars:

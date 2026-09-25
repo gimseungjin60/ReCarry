@@ -219,7 +219,7 @@ RECARRY 에 특히 중요한 차이는 **① 지역** (Supabase 가 서울 `ap-n
 | 서비스 | `recarry-backend`, Docker, **Singapore**, 인스턴스 1 |
 | 플랜 | **`free`** (0.1 CPU / 512MB, 월 750시간 — 1대 24시간 운영 가능). 15분 무요청이면 잠들고, 다음 요청 때 JVM 기동까지 1분 이상 걸린다.
 잠든 동안 로그인 실패 기록은 초기화된다. 시연 전에는 `/api/health` 를 한 번 열어 깨워 둔다. 상시 가동이 필요하면 `starter`(유료)로 바꾼다 |
-| 빌드 | `./backend/Dockerfile`, context `./backend` (경로는 저장소 루트 기준) — `backend/.dockerignore` 가 `.env*` 를 막는다 |
+| 빌드 | `rootDir: backend` 기준으로 `dockerfilePath: ./Dockerfile`, `dockerContext: .` (= `backend/`) — `rootDir` 이 있으면 Docker 경로도 그 안을 기준으로 풀린다 (첫 배포 오류로 확인). `backend/.dockerignore` 가 `.env*` 를 막는다 |
 | 재배포 | `backend/` 변경 commit 마다 (`rootDir: backend` — 프론트 변경으로는 재배포하지 않는다) |
 | 포트 | Render 가 `PORT=10000` 을 준다 → `server.port: ${PORT}` 로 바인딩 (0.0.0.0) |
 | TLS | Render 로드밸런서가 종료 → 앱은 http 로 받는다 (prod 는 사설 IP 프록시의 X-Forwarded-* 를 신뢰) |
