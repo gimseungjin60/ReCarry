@@ -8,7 +8,7 @@ export default function Cta() {
   return (
     <section className="sec blk-sand cta" id="cta">
       <div className="wrap grid">
-        <div className="cta-copy">
+        <div className="cta-copy" data-reveal>
           <p className="d-l pre">
             다음 여행을 위해
             <br />새 캐리어를 구매하는 대신
@@ -22,7 +22,7 @@ export default function Cta() {
             RECARRY 시작하기
           </Button>
         </div>
-        <div className="cta-art">
+        <div className="cta-art" data-reveal>
           <CarrierBag color="chalk" width={150} height={236} tag />
         </div>
       </div>

@@ -1,0 +1,25 @@
+/* prototype: calendar */
+.cal{user-select:none}
+.cal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cal-top button{width:36px;height:36px;border:1px solid var(--hairline);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.cal-top button:hover{border-color:var(--ink)}
+.cal-months{display:grid;grid-template-columns:repeat(var(--m,1),1fr);gap:40px}
+.cal-m h4{font-size:15px;font-weight:500;margin-bottom:10px}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px}
+.cal-g .wd{font-size:11px;color:var(--ink-muted);text-align:center;padding:6px 0}
+.cal-g button{height:40px;font-size:14px;position:relative}
+.cal-g button:hover:not([disabled]) span{border-color:var(--ink)}
+.cal-g button span{display:inline-flex;width:36px;height:36px;border-radius:50%;align-items:center;justify-content:center;border:1px solid transparent}
+.cal-g button[disabled]{color:#b9b6ae;cursor:default}
+.cal-g button.in{background:var(--stone)}
+.cal-g button.s,.cal-g button.e{background:linear-gradient(90deg,transparent 50%,var(--stone) 50%)}
+.cal-g button.e{background:linear-gradient(90deg,var(--stone) 50%,transparent 50%)}
+.cal-g button.s.e{background:none}
+.cal-g button.s span,.cal-g button.e span{background:var(--ink);color:var(--paper)}
+.cal-g button.today span{text-decoration:underline;text-underline-offset:3px}
+
+/* 태블릿 세로부터는 요약 패널 옆에 두 달이 들어가지 않는다 */
+@container app (max-width:860px){
+  .cal-months{--m:1 !important}
+  .cal-months .cal-m:nth-child(2){display:none}
+}

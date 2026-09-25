@@ -1,0 +1,10 @@
+# 연결 점검 전용: 접속·SSL·스키마 상태만 보고 끝낸다. migration 은 하지 않는다.
+#   RECARRY_ENV_FILE=.env.prod SPRING_PROFILES_ACTIVE=prod,dbcheck ./gradlew bootRun
+spring:
+  main:
+    web-application-type: none
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: none

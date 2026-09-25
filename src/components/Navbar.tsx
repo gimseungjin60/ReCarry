@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from './Button'
 import MenuSheet from './MenuSheet'
 import { NAV_LINKS } from '@/data/nav'
 import { useAnchorNav } from '@/lib/useAnchorNav'
+import { useAuth } from '@/lib/auth'
 import './Navbar.css'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const goAnchor = useAnchorNav()
+  const { user } = useAuth()
+  const menuBtn = useRef<HTMLButtonElement>(null)
 
   // 8px 이상 내려가면 하단 hairline 을 그린다 (prototype 과 동일)
   useEffect(() => {
@@ -36,17 +39,34 @@ export default function Navbar() {
           </nav>
 
           <div className="nav-actions">
+            <Link to={user ? '/mypage' : '/login'} className="nav-account">
+              {user ? '마이페이지' : '로그인'}
+            </Link>
             <Button small onClick={() => goAnchor('collection')}>
               캐리어 둘러보기
             </Button>
-            <button className="nav-menu" onClick={() => setMenuOpen(true)} aria-label="메뉴 열기">
+            <button
+              ref={menuBtn}
+              className="nav-menu"
+              onClick={() => setMenuOpen(true)}
+              aria-label="메뉴 열기"
+              aria-expanded={menuOpen}
+              aria-haspopup="dialog"
+            >
               메뉴
             </button>
           </div>
         </div>
       </header>
 
-      {menuOpen && <MenuSheet onClose={() => setMenuOpen(false)} />}
+      {menuOpen && (
+        <MenuSheet
+          onClose={() => {
+            setMenuOpen(false)
+            menuBtn.current?.focus()
+          }}
+        />
+      )}
     </>
   )
 }

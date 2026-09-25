@@ -1,0 +1,10 @@
+# 통합 테스트: 실제 PostgreSQL 이 필요하다 (배타 제약에 btree_gist 를 쓴다).
+# CI 에서는 postgres 서비스 컨테이너를 띄우고 TEST_DB_* 를 넘긴다. DB 이름에 test 가 없으면 테스트가 거부한다.
+spring:
+  datasource:
+    url: ${TEST_DB_URL}
+    username: ${TEST_DB_USERNAME}
+    password: ${TEST_DB_PASSWORD}
+  flyway:
+    clean-disabled: false
+    locations: classpath:db/migration,classpath:db/sample   # sample 카탈로그를 fixture 로 쓴다

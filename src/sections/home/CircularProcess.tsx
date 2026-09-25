@@ -37,7 +37,7 @@ export default function CircularProcess() {
     <section className="sec blk-forest" id="how">
       <div className="wrap">
         <div className="grid">
-          <div className="proc-head">
+          <div className="proc-head" data-reveal>
             <SectionHeader
               index="02"
               eyebrow="How it works"
@@ -47,7 +47,7 @@ export default function CircularProcess() {
           </div>
         </div>
 
-        <div className="grid proc-body">
+        <div className="grid proc-body" data-reveal>
           <div className="ring-wrap">
             <svg viewBox="-80 0 720 560" aria-hidden="true">
               <circle className="ring-track" cx={C} cy={C} r={R} />

@@ -8,11 +8,15 @@ import CarrierStory from '@/sections/home/CarrierStory'
 import WhyRent from '@/sections/home/WhyRent'
 import Cta from '@/sections/home/Cta'
 import '@/sections/home.css'
+import { useReveal } from '@/lib/motion'
+import { useCatalog } from '@/lib/catalog'
 
 /* PRD §4 Home — 7개 섹션. 순서와 id(#why #how #collection #story #rent #cta)를 고정한다. */
 
 export default function Home() {
   const { state } = useLocation()
+  // 카탈로그가 도착하면 새로 그려진 블록도 reveal 대상에 넣는다
+  useReveal(useCatalog().list)
 
   // 다른 페이지에서 앵커를 눌러 들어온 경우 해당 섹션으로 이동한다
   useEffect(() => {

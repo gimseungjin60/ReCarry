@@ -1,0 +1,21 @@
+# 운영 (Supabase PostgreSQL). sample 카탈로그는 절대 넣지 않는다.
+# ProductionGuard 가 기동 시 local 프로필 · 로컬 DB · sample 경로 · 약한 설정을 검사해 막는다.
+spring:
+  flyway:
+    locations: classpath:db/migration
+    clean-disabled: true
+    baseline-on-migrate: false       # 스키마 이력이 없는 기존 스키마에 조용히 올라타지 않는다
+  jpa:
+    hibernate:
+      ddl-auto: validate
+server:
+  # 호스팅의 프록시(TLS 종료) 뒤에서 X-Forwarded-For/Proto 를 믿는다.
+  # native = 내부망(사설 IP) 프록시가 보낸 헤더만 믿는다 — 로그인 실패 제한이 실제 사용자 IP 를 센다
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:native}
+recarry:
+  cookie:
+    secure: true
+logging:
+  level:
+    root: INFO
+    org.hibernate.SQL: WARN

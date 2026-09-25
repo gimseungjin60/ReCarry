@@ -1,24 +1,27 @@
-import { Fragment } from 'react'
+import { Fragment, useRef } from 'react'
 import Button from '@/components/Button'
-import { CARRIERS, DEFAULT_SIZE } from '@/data/carriers'
+import { DEFAULT_SIZE } from '@/data/carriers'
 import { PROCESS_STEPS } from '@/data/process'
 import { HOME_IMAGES } from '@/data/home'
 import { useAnchorNav } from '@/lib/useAnchorNav'
+import { useHeroExpansion } from '@/lib/motion'
+import { useCatalog } from '@/lib/catalog'
 
-/* V2 정적 hero. 스크롤 확장 애니메이션은 이후 단계에서 이 자리에 붙인다. */
+/* V2 hero. 첫 진입 motion + 스크롤하면 가장자리가 펼쳐지는 expansion (lib/motion). */
 
 export default function Hero() {
   const goAnchor = useAnchorNav()
-  const c = CARRIERS[DEFAULT_SIZE]
+  const c = useCatalog().bySize(DEFAULT_SIZE)
+  const ref = useRef<HTMLElement>(null)
+  useHeroExpansion(ref)
 
   return (
-    <section className="hero2" aria-label="RECARRY 소개">
-      <img className="ph" src={HOME_IMAGES.hero.src} alt={HOME_IMAGES.hero.alt} decoding="async" />
+    <section className="hero2" aria-label="RECARRY 소개" ref={ref}>
+      <img className="ph" src={HOME_IMAGES.hero.src} alt={HOME_IMAGES.hero.alt} decoding="async" fetchPriority="high" />
       <div className="wrap hero2-top">
-        <p className="label">Circular carrier rental — Seoul</p>
-        <p className="mono">
-          {c.id} · {c.grade} GRADE · 2ND JOURNEY
-        </p>
+        <p className="label">Circular carrier rental</p>
+        {/* 카탈로그를 받은 뒤에 대표 캐리어 ID 를 보여준다 */}
+        <p className="mono">{c && `${c.id} · ${c.grade} GRADE · 2ND JOURNEY`}</p>
       </div>
       <div className="wrap grid hero2-in">
         <div className="hero2-copy">

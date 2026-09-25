@@ -16,9 +16,14 @@
 .menu-foot{margin-top:auto}
 
 @container app (max-width:1080px){ .nav-links{gap:24px} }
-@container app (max-width:860px){ .nav-links{display:none} }
+@container app (max-width:860px){ .nav-links{display:none} .nav-menu{display:inline-flex} }
 @container app (max-width:720px){
   .nav-in{height:60px}
   .nav-links,.nav .btn{display:none}
   .nav-menu{display:inline-flex}
 }
+
+/* 계정 링크 — nav 링크와 같은 라벨 타이포. 모바일은 메뉴 시트 안에 있다 */
+.nav-account{font-size:13px;letter-spacing:-.01em;font-weight:500;padding:6px 0;border-bottom:1px solid transparent}
+.nav-account:hover{border-bottom-color:var(--ink)}
+@container app (max-width:720px){ .nav-account{display:none} }

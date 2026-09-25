@@ -1,0 +1,64 @@
+/* ============================================================
+   Motion. DESIGN.md §9 — fade / slide / scale / image reveal 만 쓴다.
+   모든 요소의 기본값은 "최종 상태"다. 움직임은 no-preference 일 때만 켜지고,
+   숨김(reveal)은 JS 가 html.reveal-on 을 붙였을 때만 적용된다.
+   ============================================================ */
+
+@media (prefers-reduced-motion: no-preference){
+
+  /* ---------- hero: 첫 진입 ---------- */
+  .hero2 .ph{animation:hero-settle 1.8s var(--ease) both}
+  .hero2-top,.hero2-loop{animation:fade-in 1s .5s var(--ease) both}
+  .hero2-copy>*{animation:rise 1s var(--ease) both}
+  .hero2-copy>:nth-child(1){animation-delay:.15s}
+  .hero2-copy>:nth-child(2){animation-delay:.3s}
+  .hero2-copy>:nth-child(3){animation-delay:.45s}
+
+  /* ---------- hero: scroll expansion (--expand 는 useHeroExpansion 이 0→1 로 올린다) ---------- */
+  .hero2{--hero-gap:20px;--g:calc((1 - var(--expand,1)) * var(--hero-gap));
+    clip-path:inset(0 var(--g) var(--g) var(--g) round calc((1 - var(--expand,1)) * 12px))}
+
+  /* ---------- section reveal ---------- */
+  .reveal-on [data-reveal]:not(.is-in){opacity:0;transform:translateY(28px)}
+  .reveal-on [data-reveal]{transition:opacity .9s var(--ease),transform .9s var(--ease)}
+
+  /* 자식이 차례로 들어오는 목록 (frames / cards / 이유 / 이용 방법) */
+  .reveal-on [data-reveal="stagger"]:not(.is-in){opacity:1;transform:none}
+  .reveal-on [data-reveal="stagger"]:not(.is-in)>*{opacity:0;transform:translateY(28px)}
+  .reveal-on [data-reveal="stagger"]>*{transition:opacity .9s var(--ease),transform .9s var(--ease)}
+  .reveal-on [data-reveal="stagger"]>:nth-child(2){transition-delay:.08s}
+  .reveal-on [data-reveal="stagger"]>:nth-child(3){transition-delay:.16s}
+  .reveal-on [data-reveal="stagger"]>:nth-child(4){transition-delay:.24s}
+
+  /* 사진: 아래에서 위로 걷히며 살짝 줌 아웃 */
+  .reveal-on [data-reveal="image"]:not(.is-in){opacity:1;transform:none}
+  /* 모바일에서는 사진이 화면 폭 전체라, 확대분이 가로 스크롤을 만들지 않게 figure 안에 가둔다 */
+  .reveal-on [data-reveal="image"]{overflow:hidden}
+  .reveal-on [data-reveal="image"] .ph{transition:clip-path 1.2s var(--ease),transform 1.6s var(--ease)}
+  .reveal-on [data-reveal="image"]:not(.is-in) .ph{clip-path:inset(100% 0 0 0);transform:scale(1.06)}
+
+  /* ---------- carrier interaction ---------- */
+  @media (hover:hover){
+    .why-frames .frame svg.bag{transition:transform .8s var(--ease)}
+    .why-frames figure:hover .frame svg.bag{transform:translateY(-8px)}
+  }
+
+  /* ---------- micro ---------- */
+  .btn:active:not([disabled]){transform:scale(.98)}
+}
+
+@keyframes hero-settle{from{transform:scale(1.06)}to{transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+
+@container app (max-width:720px){
+  .hero2{--hero-gap:10px}
+}
+
+/* 움직임을 줄이도록 설정한 사용자: 기존 transition(카드 hover, ring 등)도 즉시 끝낸다 */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+}
+
+/* before/after 슬라이더: 투명 range 에 키보드 포커스가 오면 손잡이에 링을 그린다 */
+.compare:has(input:focus-visible) .knob{outline:2px solid var(--focus);outline-offset:3px}

@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { reducedMotion } from './motion'
 
 /* 홈 내부 섹션으로 이동한다.
    - 이미 홈이면 그 자리에서 스크롤
@@ -12,7 +13,7 @@ export function useAnchorNav() {
   return useCallback(
     (id: string) => {
       if (pathname === '/') {
-        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+        document.getElementById(id)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' })
       } else {
         navigate('/', { state: { anchor: id } })
       }

@@ -1,0 +1,10 @@
+# 비밀 값 · 로컬 DB · 빌드 결과는 이미지 빌드에 보내지 않는다
+.env
+.env.*
+.localdb/
+build/
+.gradle/
+bin/
+*.log
+db/demo/
+docker/

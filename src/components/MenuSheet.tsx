@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Button from './Button'
 import { NAV_LINKS } from '@/data/nav'
 import { useAnchorNav } from '@/lib/useAnchorNav'
+import { useAuth } from '@/lib/auth'
 import './Navbar.css'
 
 /* 모바일 전체화면 메뉴. Navbar 의 '메뉴' 버튼에서만 열린다. */
@@ -13,6 +14,7 @@ interface Props {
 
 export default function MenuSheet({ onClose }: Props) {
   const goAnchor = useAnchorNav()
+  const { user } = useAuth()
 
   // 시트가 열린 동안 뒤 페이지가 스크롤되지 않게 한다
   useEffect(() => {
@@ -40,7 +42,8 @@ export default function MenuSheet({ onClose }: Props) {
         <Link to="/" className="logo" onClick={onClose}>
           <span className="re">RE</span>CARRY
         </Link>
-        <button onClick={onClose} style={{ fontSize: 14, fontWeight: 500 }}>
+        {/* 열리면 닫기 버튼으로 포커스를 옮긴다 (Esc 로도 닫힌다) */}
+        <button onClick={onClose} style={{ fontSize: 14, fontWeight: 500 }} autoFocus>
           닫기
         </button>
       </div>
@@ -57,6 +60,9 @@ export default function MenuSheet({ onClose }: Props) {
         <Button block arrow onClick={() => go('collection')}>
           캐리어 둘러보기
         </Button>
+        <Link to={user ? '/mypage' : '/login'} className="link" onClick={onClose} style={{ display: 'inline-block', marginTop: 20 }}>
+          {user ? '마이페이지' : '로그인 / 회원가입'}
+        </Link>
         <p className="small" style={{ marginTop: 16 }}>
           버려지는 캐리어를 다시 여행으로.
         </p>

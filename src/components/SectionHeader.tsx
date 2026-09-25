@@ -28,7 +28,7 @@ export default function SectionHeader({
     <>
       <p className="label idx">{index ? `${index} — ${eyebrow}` : eyebrow}</p>
       {title && (
-        <Heading className={size} style={{ marginTop: 32 }}>
+        <Heading className={size} style={{ marginTop: size === 'd-m' ? 24 : 32 }}>
           {title.map((line, i) => (
             <span key={i}>
               {i > 0 && <br />}

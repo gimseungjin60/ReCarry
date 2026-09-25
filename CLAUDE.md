@@ -31,17 +31,25 @@ RECARRY Web MVP다.
 5. 간단한 예약 흐름
 6. RECARRY의 자원순환 스토리 전달
 
+구현 완료 (Backend + DB 단계):
+
+- 회원가입 / 로그인 / 로그아웃 (Spring Security JWT, httpOnly 쿠키)
+- 예약 저장 (서버 가격 재계산, 중복 예약 DB 제약)
+- My Page (회원 정보 · 예약 목록 · 상세 · 예약 요청 취소)
+- 최소 Admin (재고 요약 · 캐리어 운영 상태 · 예약 상태 변경)
+- Local / Production(Supabase) 프로필 분리 — Supabase 에 migration · demo 카탈로그 적용 완료
+
 현재 단계에서는 다음 기능을 구현하지 않는다.
 
 - 실결제 PG
 - 실제 배송 API
-- 회원가입/로그인
+- 외부 알림 (카카오톡 · 문자 · 메일)
 - 쿠폰
 - 포인트
 - 리뷰 시스템
 - 구독 결제
 - B2B 관리 시스템
-- 복잡한 관리자 시스템
+- 최소 범위를 넘는 관리자 기능 (캐리어 등록은 설계만 — docs/BACKEND.md §15)
 - AI 추천
 - 실제 운영 자동화
 
@@ -77,6 +85,22 @@ Important:
 - Next.js App Router 전제 금지
 
 필요한 컴포넌트는 React + Vite 환경에 맞게 변환한다.
+
+Backend (backend/, 설계: docs/BACKEND.md):
+
+- Spring Boot 4 · Java 17
+- Spring Data JPA (ddl-auto: validate) · Flyway migration
+- Spring Security + JWT (httpOnly 쿠키)
+- PostgreSQL — 로컬 클러스터 / Supabase (운영)
+
+Backend 규칙:
+
+- 스키마 변경은 새 Flyway migration 으로만 한다. 적용된 migration 은 고치지 않는다.
+- 새 테이블을 만드는 migration 에는 ENABLE ROW LEVEL SECURITY 를 함께 넣는다 (Supabase Data API 차단 — V2 참고).
+- 비밀 값(DB 비밀번호 · JWT secret · 관리자 비밀번호)은 코드 · 로그 · 문서에 넣지 않는다. .env / 환경변수만.
+- sample 카탈로그(db/sample)는 local 프로필에서만. 운영(prod)에 자동으로 넣지 않는다.
+- 운영 DB 의 시연 데이터는 backend/db/demo/demo_catalog.sql (DEMO, S 가 붙은 Carrier ID) 로만 넣고, 운영 데이터 삭제는 자동화하지 않는다.
+- 가격 · 재고 · 예약 가능 여부는 서버가 최종 판단한다. 프론트 값은 표시용이다.
 
 ---
 
@@ -297,3 +321,4 @@ docs/components/scroll-expansion-hero.md
 - broken route 없음
 - 핵심 사용자 흐름 정상 작동
 - 기존 기능 regressions 없음
+- backend 를 건드렸다면 ./gradlew clean build (통합 테스트 포함) 통과

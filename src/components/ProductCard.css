@@ -5,7 +5,7 @@
 .pcard .frame svg.bag{height:70%}
 .pcard:hover .frame svg.bag{transform:translateY(-10px)}
 .pcard-body{padding-top:20px}
-.pcard-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+.pcard-row{display:flex;justify-content:space-between;align-items:baseline;gap:0 16px;flex-wrap:wrap}
 .pcard-name{font-family:var(--font-display);font-size:24px;letter-spacing:-.03em;font-weight:500}
 .pcard-price{font-size:17px;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
 .pcard-price small{font-size:13px;color:var(--ink-muted);font-weight:400;margin-left:4px}

@@ -6,4 +6,4 @@ export const NAV_LINKS = [
 ]
 
 /** Prototype 고지 — 가격·정책·재고가 샘플 데이터임을 한 곳에서만 알린다 */
-export const PROTOTYPE_NOTICE = 'Seoul — Web MVP prototype · 가격·정책·재고는 샘플 데이터입니다'
+export const PROTOTYPE_NOTICE = 'Web MVP prototype · 가격·정책·재고는 샘플 데이터입니다'

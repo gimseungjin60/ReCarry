@@ -1,0 +1,57 @@
+# RECARRY CI — push / PR 마다 프론트 빌드와 백엔드 빌드 + 통합 테스트를 돌린다.
+# 백엔드 통합 테스트는 실제 PostgreSQL 이 필요하다 (btree_gist 배타 제약) → postgres 서비스 컨테이너.
+# 비밀 값은 쓰지 않는다: DB 는 잡이 끝나면 사라지는 컨테이너이고, JWT 키는 테스트가 매번 새로 만든다.
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build          # tsc + vite build
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: recarry_test          # 테스트는 이름에 test 가 있는 DB 만 비운다
+          POSTGRES_USER: recarry
+          POSTGRES_PASSWORD: ci-only-throwaway
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U recarry -d recarry_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DB_URL: jdbc:postgresql://localhost:5432/recarry_test
+      TEST_DB_USERNAME: recarry
+      TEST_DB_PASSWORD: ci-only-throwaway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - run: chmod +x gradlew
+      - run: ./gradlew clean build --no-daemon      # 컴파일 + 통합 테스트 + bootJar
+      - name: Test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-report
+          path: backend/build/reports/tests/test

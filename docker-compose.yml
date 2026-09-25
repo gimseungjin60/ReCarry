@@ -1,0 +1,18 @@
+# 로컬 개발용 PostgreSQL (운영은 Supabase). 공식 이미지에 btree_gist 확장이 들어 있다.
+# 비밀번호는 backend/.env 의 DB_PASSWORD 를 그대로 쓴다:  docker compose --env-file backend/.env up -d
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: recarry
+      POSTGRES_USER: ${DB_USERNAME:-recarry}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in backend/.env}
+    ports:
+      - "5433:5432"
+    volumes:
+      - recarry-db:/var/lib/postgresql/data
+      # 통합 테스트용 DB 도 함께 만든다
+      - ./backend/docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+
+volumes:
+  recarry-db:

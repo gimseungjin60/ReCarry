@@ -34,7 +34,16 @@ export default function BookingSummary({ carrier, start, end }: Props) {
         </div>
         <div>
           <dt>여행 날짜</dt>
-          <dd>{start && end ? `${fmt(start)} — ${fmt(end)}` : '—'}</dd>
+          <dd>
+            {start && end ? (
+              <>
+                {fmt(start)} —<br />
+                {fmt(end)}
+              </>
+            ) : (
+              '—'
+            )}
+          </dd>
         </div>
         <div>
           <dt>기간</dt>
@@ -50,7 +59,7 @@ export default function BookingSummary({ carrier, start, end }: Props) {
         </div>
         <div>
           <dt>배송 · 회수</dt>
-          <dd>무료</dd>
+          <dd>준비 중</dd>
         </div>
         <div className="tot">
           <dt>합계</dt>

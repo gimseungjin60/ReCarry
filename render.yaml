@@ -1,0 +1,42 @@
+# Render Blueprint — RECARRY backend (Spring Boot, Docker)
+# Render Dashboard → New → Blueprint → 이 저장소 선택 → sync:false 항목을 직접 입력 → Apply
+# 비밀 값은 이 파일에 넣지 않는다. JWT_SECRET 은 Render 가 생성한다 (256-bit, 이 저장소·다른 사람에게 노출되지 않음).
+# 설명: docs/DEPLOYMENT.md §11 (Render)
+services:
+  - type: web
+    name: recarry-backend
+    runtime: docker
+    region: singapore                  # Render 의 가장 가까운 지역 (Supabase 는 서울)
+    plan: free                         # 0.1 CPU / 512MB. 15분 무요청이면 잠들고 다음 요청 때 다시 켠다(JVM 기동 포함 1분 이상).
+                                       # 상시 가동이 필요해지면 starter(0.5 CPU, 유료)로 바꾼다
+    numInstances: 1                    # free 는 1대 고정. 로그인 실패 제한도 인스턴스 메모리 기준 (잠들면 초기화)
+    rootDir: backend                   # backend/ 밖(프론트) 변경은 재배포하지 않는다
+    dockerfilePath: ./backend/Dockerfile   # 경로는 저장소 루트 기준
+    dockerContext: ./backend               # backend/.dockerignore 가 .env* 를 막는다
+    healthCheckPath: /api/health       # DB select 1 포함, 5초 안에 2xx
+    autoDeployTrigger: commit
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL
+        value: jdbc:postgresql://aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require
+      - key: DB_USERNAME               # postgres.<project-ref> — 대시보드에서 입력
+        sync: false
+      - key: DB_PASSWORD               # Supabase DB 비밀번호 — 대시보드에서 입력
+        sync: false
+      - key: JWT_SECRET                # Render 가 무작위 256-bit 값을 만든다
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGINS      # 실제 Vercel origin (예: https://<앱>.vercel.app), 쉼표 구분, * 금지
+        sync: false
+      - key: ADMIN_EMAIL               # 실제 관리자 — 첫 배포 후 계정이 생기면 ADMIN_PASSWORD 는 지운다
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: COOKIE_SAME_SITE          # Vercel rewrite(같은 origin) 구성
+        value: Lax
+      - key: DB_POOL_SIZE
+        value: "5"
+      - key: JWT_TTL_MINUTES
+        value: "120"
+      - key: LOGIN_MAX_FAILURES_PER_IP # Vercel rewrite 뒤에서는 요청이 Vercel IP 몇 개로 모인다 (계정별 5회 제한은 그대로)
+        value: "300"

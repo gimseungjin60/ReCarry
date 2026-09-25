@@ -36,7 +36,7 @@ export default function Footer() {
             <p className="label">Support</p>
             <div className="fl">
               <span>이용 안내</span>
-              <span>파손·분실 정책</span>
+              <span>파손·분실 정책 (준비 중)</span>
               <span>자주 묻는 질문</span>
             </div>
           </div>
@@ -45,7 +45,7 @@ export default function Footer() {
             <p className="label">Give a carrier</p>
             <div className="fl">
               <span>쓰지 않는 캐리어가 있나요?</span>
-              <span style={{ color: 'var(--ink)' }}>캐리어 기증하기 →</span>
+              <span>캐리어 기증 (준비 중)</span>
             </div>
           </div>
         </div>

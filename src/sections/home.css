@@ -72,9 +72,6 @@
 .story-fig{grid-column:9/13;margin:0;align-self:end}
 .story-fig .ph{position:relative;aspect-ratio:3/4;height:auto;background:var(--night-raised)}
 .story-fig figcaption{margin-top:14px}
-.story-body{margin-top:var(--space-9);align-items:start}
-.story-body .compare{grid-column:1/7}
-.passport{grid-column:8/13}
 
 /* ---------- why rent ---------- */
 .rent2{align-items:start}
@@ -131,8 +128,6 @@
   .story-fig{margin:40px -20px 0}
   .story-fig figcaption{padding:0 20px}
   .story-fig .ph{aspect-ratio:4/5}
-  .story-body{margin-top:48px}
-  .story-body .compare{margin:0 -20px 40px}
 
   .rent-fig{margin:0 -20px 48px}
   .rent-fig figcaption{padding:0 20px}

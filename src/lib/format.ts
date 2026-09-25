@@ -23,3 +23,13 @@ export const addDays = (d: Date, n: number) => {
 
 /** 기본 2박까지는 기본 요금, 그 이상은 1박당 extra 가 붙는다. */
 export const priceFor = (p: Carrier, n: number) => p.price + Math.max(0, (n || 2) - 2) * p.extra
+
+/** API 날짜 'YYYY-MM-DD' (로컬 날짜 기준 — toISOString 은 UTC 라 하루 밀릴 수 있다) */
+export const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+/** 'YYYY-MM-DD' → 로컬 Date */
+export const parseYmd = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
