@@ -11,8 +11,18 @@ interface AuthState {
   /** 세션을 확인하는 중 */
   loading: boolean
   login: (email: string, password: string) => Promise<User>
-  signup: (input: { email: string; password: string; name: string; phone: string }) => Promise<User>
+  signup: (input: SignupInput) => Promise<User>
   logout: () => Promise<void>
+}
+
+export interface SignupInput {
+  email: string
+  password: string
+  name: string
+  phone: string
+  /** 필수 동의 — backend 가 다시 검증하고 동의 버전·시각을 기록한다 */
+  agreeTerms: boolean
+  agreePrivacy: boolean
 }
 
 const AuthContext = createContext<AuthState | null>(null)

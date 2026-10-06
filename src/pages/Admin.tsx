@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import BookingTicket from '@/components/BookingTicket'
+import { CarrierCreate, ModelEditor } from '@/pages/AdminCarrier'
 import { BOOKING_NEXT, BOOKING_STATUS, CARRIER_OPERATIONAL, CARRIER_STATUS } from '@/data/status'
 import type { ApiCarrier, Booking, BookingStatus, CarrierSize, CarrierStatus } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
 import { fmt, parseYmd, won } from '@/lib/format'
 
-/* 최소 관리자 화면 — 재고 요약 · 캐리어 상태 변경 · 예약 목록 / 상태 변경 / 상세.
+/* 관리자 화면 — 재고 요약 · 캐리어 목록(→ 상세 · 등록) · 사이즈 상품 · 예약 목록 / 상태 변경 / 상세.
    RequireAuth admin 으로 감싸고, 서버도 /api/admin/** 를 ADMIN 만 통과시킨다. */
 
 const SIZES: CarrierSize[] = ['20', '24', '28']
@@ -89,7 +90,11 @@ export function Admin() {
         <h2 className="t-title" id="adm-carriers">
           캐리어
         </h2>
-        <p className="small">예약됨 · 대여 중은 오늘 날짜의 예약으로 계산됩니다. 운영 상태만 직접 바꿀 수 있습니다.</p>
+        <p className="small">
+          예약됨 · 대여 중은 오늘 날짜의 예약으로 계산됩니다. 운영 상태만 직접 바꿀 수 있습니다. Carrier ID 를 누르면 검수 결과와
+          Story 기록을 관리할 수 있습니다.
+        </p>
+        <CarrierCreate />
         <div className="tbl-wrap">
           <table className="tbl">
             <thead>
@@ -99,6 +104,7 @@ export function Admin() {
                 <th>등급</th>
                 <th>회수처</th>
                 <th>검수일</th>
+                <th>검수 결과</th>
                 <th>오늘 상태</th>
                 <th>운영 상태 변경</th>
               </tr>
@@ -106,11 +112,19 @@ export function Admin() {
             <tbody>
               {carriers?.map((c) => (
                 <tr key={c.id}>
-                  <td className="mono">{c.code}</td>
+                  <td className="mono">
+                    <Link className="link" to={`/admin/carriers/${c.code}`}>
+                      {c.code}
+                    </Link>
+                    {c.featured && <span className="small"> · 대표</span>}
+                  </td>
                   <td>{c.size}"</td>
                   <td>{c.grade}</td>
                   <td>{c.collectedFrom}</td>
                   <td className="mono">{c.inspectedAt ?? '—'}</td>
+                  <td className="mono">
+                    {c.inspection.length ? `${c.inspection.filter((x) => x.passed).length}/${c.inspection.length}` : '기록 없음'}
+                  </td>
                   <td>{CARRIER_STATUS[c.status]}</td>
                   <td>
                     <select
@@ -131,6 +145,8 @@ export function Admin() {
           </table>
         </div>
       </section>
+
+      <ModelEditor />
 
       <section className="adm-sec" aria-labelledby="adm-bookings">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
@@ -173,7 +189,11 @@ export function Admin() {
                       </Link>
                     </td>
                     <td>{b.customer?.name}</td>
-                    <td className="mono">{b.carrierCode}</td>
+                    <td className="mono">
+                      <Link className="link" to={`/admin/carriers/${b.carrierCode}`}>
+                        {b.carrierCode}
+                      </Link>
+                    </td>
                     <td>
                       {fmt(parseYmd(b.startDate))} — {fmt(parseYmd(b.endDate))}
                     </td>
@@ -241,6 +261,14 @@ export function AdminBooking() {
               <dt>고객</dt>
               <dd>
                 {b.customer?.name} · {b.customer?.email}
+              </dd>
+            </div>
+            <div>
+              <dt>캐리어</dt>
+              <dd>
+                <Link className="link mono" to={`/admin/carriers/${b.carrierCode}`}>
+                  {b.carrierCode}
+                </Link>
               </dd>
             </div>
             <div>

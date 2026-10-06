@@ -1,27 +1,31 @@
 package com.recarry.admin;
 
 import java.util.List;
-import java.util.Map;
 
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.recarry.booking.BookingDtos.BookingResponse;
 import com.recarry.booking.BookingDtos.StatusChangeRequest;
 import com.recarry.booking.BookingService;
 import com.recarry.booking.BookingStatus;
-import com.recarry.carrier.Carrier;
+import com.recarry.carrier.CarrierAdminService;
+import com.recarry.carrier.CarrierDtos.CarrierCreateRequest;
 import com.recarry.carrier.CarrierDtos.CarrierResponse;
-import com.recarry.carrier.CarrierRepository;
-import com.recarry.carrier.CarrierService;
+import com.recarry.carrier.CarrierDtos.CarrierUpdateRequest;
+import com.recarry.carrier.CarrierDtos.EventRequest;
+import com.recarry.carrier.CarrierDtos.InspectionRequest;
+import com.recarry.carrier.CarrierDtos.ModelUpdateRequest;
 import com.recarry.carrier.CarrierStatus;
-import com.recarry.common.ApiException;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -31,39 +35,64 @@ import jakarta.validation.constraints.NotNull;
 @RequestMapping("/api/admin")
 public class AdminController {
 
-	private final CarrierRepository carriers;
-	private final CarrierService carrierService;
+	private final CarrierAdminService carriers;
 	private final BookingService bookings;
 
-	public AdminController(CarrierRepository carriers, CarrierService carrierService, BookingService bookings) {
+	public AdminController(CarrierAdminService carriers, BookingService bookings) {
 		this.carriers = carriers;
-		this.carrierService = carrierService;
 		this.bookings = bookings;
 	}
 
-	/** 전체 캐리어 + 오늘 기준 표시 상태. 재고 요약은 이 목록에서 계산한다. */
+	// ---------------------------------------------------------------- carriers
+
+	/** 전체 캐리어 + 오늘 기준 표시 상태. 재고 요약은 이 목록에서 계산한다. 상세는 공개 GET /api/carriers/{code}. */
 	@GetMapping("/carriers")
-	@Transactional(readOnly = true)
 	public List<CarrierResponse> carriers() {
-		Map<Long, CarrierStatus> today = carrierService.statusToday();
-		return carriers.findAllWithModel().stream().map(c -> CarrierService.toResponse(c, today)).toList();
+		return carriers.list();
+	}
+
+	@PostMapping("/carriers")
+	@ResponseStatus(HttpStatus.CREATED)
+	public CarrierResponse createCarrier(@Valid @RequestBody CarrierCreateRequest req) {
+		return carriers.create(req);
+	}
+
+	@PatchMapping("/carriers/{id}")
+	public CarrierResponse updateCarrier(@PathVariable Long id, @Valid @RequestBody CarrierUpdateRequest req) {
+		return carriers.update(id, req);
 	}
 
 	public record CarrierStatusRequest(@NotNull(message = "상태를 선택해주세요.") CarrierStatus status) {}
 
-	/** 운영 상태만 바꿀 수 있다. RESERVED / RENTED 는 예약에서 계산되는 값이다. */
 	@PatchMapping("/carriers/{id}/status")
-	@Transactional
 	public CarrierResponse changeCarrierStatus(@PathVariable Long id, @Valid @RequestBody CarrierStatusRequest req) {
-		if (!req.status().operational()) {
-			throw ApiException.badRequest("INVALID_STATUS", "RESERVED / RENTED 는 예약으로 정해지는 상태입니다.");
-		}
-		Carrier c = carriers.findById(id)
-			.orElseThrow(() -> ApiException.notFound("CARRIER_NOT_FOUND", "캐리어를 찾을 수 없습니다."));
-		c.changeStatus(req.status());
-		carriers.flush();
-		return CarrierService.toResponse(c, carrierService.statusToday());
+		return carriers.changeStatus(id, req.status());
 	}
+
+	@PostMapping("/carriers/{id}/inspection")
+	public CarrierResponse recordInspection(@PathVariable Long id, @Valid @RequestBody InspectionRequest req) {
+		return carriers.recordInspection(id, req);
+	}
+
+	@PostMapping("/carriers/{id}/events")
+	@ResponseStatus(HttpStatus.CREATED)
+	public CarrierResponse addEvent(@PathVariable Long id, @Valid @RequestBody EventRequest req) {
+		return carriers.addEvent(id, req);
+	}
+
+	@DeleteMapping("/carriers/{id}/events/{eventId}")
+	public CarrierResponse removeEvent(@PathVariable Long id, @PathVariable Long eventId) {
+		return carriers.removeEvent(id, eventId);
+	}
+
+	/** 사이즈 상품의 가격 · 문구. 조회는 공개 GET /api/carriers. */
+	@PatchMapping("/carrier-models/{size}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void updateModel(@PathVariable String size, @Valid @RequestBody ModelUpdateRequest req) {
+		carriers.updateModel(size, req);
+	}
+
+	// ---------------------------------------------------------------- bookings
 
 	@GetMapping("/bookings")
 	public List<BookingResponse> bookings(@RequestParam(required = false) BookingStatus status) {

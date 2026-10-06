@@ -21,9 +21,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -61,6 +63,9 @@ class ApiIntegrationTest {
 
 	@LocalServerPort
 	int port;
+
+	@Autowired
+	JdbcTemplate jdbc;
 
 	final HttpClient http = HttpClient.newHttpClient();
 	final ObjectMapper json = new ObjectMapper();
@@ -100,7 +105,7 @@ class ApiIntegrationTest {
 	String signup() throws Exception {
 		String email = "user-" + UUID.randomUUID() + "@test.recarry";
 		Res r = call("POST", "/api/auth/signup", null,
-			java.util.Map.of("email", email, "password", "passw0rd!", "name", "테스터", "phone", "010-1234-5678"));
+			java.util.Map.of("email", email, "password", "passw0rd!", "name", "테스터", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		assertThat(r.status()).isEqualTo(201);
 		return r.session();
 	}
@@ -133,14 +138,14 @@ class ApiIntegrationTest {
 	void signup_login_me_and_password_is_not_exposed() throws Exception {
 		String email = "Mixed.Case-" + UUID.randomUUID() + "@Test.Recarry";
 		Res s = call("POST", "/api/auth/signup", null,
-			java.util.Map.of("email", email, "password", "passw0rd!", "name", "김테스트", "phone", "010-1234-5678"));
+			java.util.Map.of("email", email, "password", "passw0rd!", "name", "김테스트", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		assertThat(s.status()).isEqualTo(201);
 		assertThat(s.body().get("user").get("email").asString()).isEqualTo(email.toLowerCase());
 		assertThat(s.body().get("user").has("passwordHash")).isFalse();
 
 		// 대소문자만 다른 중복 가입은 거절
 		Res dup = call("POST", "/api/auth/signup", null,
-			java.util.Map.of("email", email.toUpperCase(), "password", "passw0rd!", "name", "x", "phone", "010-1234-5678"));
+			java.util.Map.of("email", email.toUpperCase(), "password", "passw0rd!", "name", "x", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		assertThat(dup.status()).isEqualTo(409);
 		assertThat(dup.code()).isEqualTo("EMAIL_TAKEN");
 
@@ -170,6 +175,30 @@ class ApiIntegrationTest {
 
 		Res malformed = call("POST", "/api/auth/signup", null, "{not json");
 		assertThat(malformed.status()).isEqualTo(400);
+	}
+
+	@Test
+	void signup_requires_both_consents_and_records_them() throws Exception {
+		String email = "consent-" + UUID.randomUUID() + "@test.recarry";
+		// 동의 필드를 보내지 않거나 false 면 가입되지 않는다
+		Res none = call("POST", "/api/auth/signup", null,
+			java.util.Map.of("email", email, "password", "passw0rd!", "name", "동의", "phone", "010-1234-5678"));
+		assertThat(none.status()).isEqualTo(400);
+		assertThat(none.body().get("fields").has("agreeTerms")).isTrue();
+		assertThat(none.body().get("fields").has("agreePrivacy")).isTrue();
+		Res half = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "동의", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", false));
+		assertThat(half.status()).isEqualTo(400);
+		assertThat(half.body().get("fields").has("agreePrivacy")).isTrue();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE email = ?", Integer.class, email)).isZero();
+
+		Res ok = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "동의", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
+		assertThat(ok.status()).isEqualTo(201);
+		var row = jdbc.queryForMap("SELECT terms_version, privacy_version, agreed_at FROM users WHERE email = ?", email);
+		assertThat(row.get("terms_version")).isEqualTo("draft");
+		assertThat(row.get("privacy_version")).isEqualTo("draft");
+		assertThat(row.get("agreed_at")).isNotNull();
 	}
 
 	@Test
@@ -399,7 +428,7 @@ class ApiIntegrationTest {
 
 		// 캐리어 운영 상태: REPAIR 로 바꾸면 예약 가능 대수에서 빠진다. RESERVED 는 직접 지정할 수 없다
 		Res carriers = call("GET", "/api/admin/carriers", admin, null);
-		assertThat(carriers.body().size()).isEqualTo(6);
+		assertThat(carriers.body().size()).isGreaterThanOrEqualTo(6);
 		long id = -1;
 		for (JsonNode c : carriers.body()) if (c.get("code").asString().equals("RC-20-S02")) id = c.get("id").asLong();
 		LocalDate[] later = window(3);
@@ -413,13 +442,152 @@ class ApiIntegrationTest {
 		call("PATCH", "/api/admin/carriers/" + id + "/status", admin, java.util.Map.of("status", "AVAILABLE"));
 	}
 
+	@Test
+	void admin_registers_edits_and_records_carrier_history() throws Exception {
+		String admin = adminToken();
+		String code = "RC-20-T" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+		java.util.Map<String, Object> create = new java.util.HashMap<>(java.util.Map.of(
+			"size", "20", "code", code, "grade", "A", "collectedFrom", "테스트 회수처", "repairSummary", "바퀴 ×1"));
+
+		// 사용자는 관리 API 를 쓸 수 없다
+		assertThat(call("POST", "/api/admin/carriers", signup(), create).status()).isEqualTo(403);
+
+		// 등록: 세척·검수 전(INSPECTION)으로 시작하고, 검수 결과는 비어 있다
+		Res created = call("POST", "/api/admin/carriers", admin, create);
+		assertThat(created.status()).isEqualTo(201);
+		long id = created.body().get("id").asLong();
+		assertThat(created.body().get("status").asString()).isEqualTo("INSPECTION");
+		assertThat(created.body().get("inspection").size()).isZero();
+		assertThat(created.body().get("featured").asBoolean()).isFalse();
+		assertThat(call("POST", "/api/admin/carriers", admin, create).code()).isEqualTo("CARRIER_CODE_TAKEN");
+
+		java.util.Map<String, Object> bad = new java.util.HashMap<>(create);
+		bad.put("code", "rc bad");
+		bad.put("grade", "C");
+		Res invalid = call("POST", "/api/admin/carriers", admin, bad);
+		assertThat(invalid.status()).isEqualTo(400);
+		assertThat(invalid.body().get("fields").has("code")).isTrue();
+		assertThat(invalid.body().get("fields").has("grade")).isTrue();
+		java.util.Map<String, Object> noSize = new java.util.HashMap<>(create);
+		noSize.put("size", "99");
+		noSize.put("code", code + "X");
+		assertThat(call("POST", "/api/admin/carriers", admin, noSize).code()).isEqualTo("MODEL_NOT_FOUND");
+
+		// 수정 + 대표 지정: 같은 사이즈의 기존 대표는 내려간다. 원래 대표로 되돌린다
+		String path = "/api/admin/carriers/" + id;
+		Res edited = call("PATCH", path, admin,
+			java.util.Map.of("grade", "B", "collectedFrom", "수정 회수처", "repairSummary", "", "featured", true));
+		assertThat(edited.status()).isEqualTo(200);
+		assertThat(edited.body().get("grade").asString()).isEqualTo("B");
+		assertThat(edited.body().get("code").asString()).isEqualTo(code);
+		assertThat(call("GET", "/api/carriers?size=20", null, null).body().get(0).get("featured").get("code").asString())
+			.isEqualTo(code);
+		long originalId = call("GET", "/api/carriers/RC-20-0412", null, null).body().get("id").asLong();
+		assertThat(call("PATCH", "/api/admin/carriers/" + originalId, admin, java.util.Map.of("grade", "A",
+			"collectedFrom", "공항 인근", "repairSummary", "지퍼 슬라이더 교체", "featured", true)).status()).isEqualTo(200);
+		assertThat(call("GET", "/api/carriers/" + code, null, null).body().get("featured").asBoolean()).isFalse();
+
+		// 검수: 모든 항목을 한 번씩, 오늘(서울) 이후 날짜는 안 된다
+		LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+		List<java.util.Map<String, Object>> checks = new ArrayList<>();
+		for (String item : List.of("CLEANING", "EXTERIOR", "WHEELS", "HANDLE", "ZIPPER")) {
+			boolean zipper = item.equals("ZIPPER");
+			checks.add(java.util.Map.of("item", item, "passed", !zipper, "note", zipper ? "슬라이더 재교체 필요" : ""));
+		}
+		String insp = path + "/inspection";
+		assertThat(call("POST", insp, admin, java.util.Map.of("inspectedAt", today.toString(), "checks", checks.subList(0, 4))).code())
+			.isEqualTo("INVALID_INSPECTION");
+		List<java.util.Map<String, Object>> dup = new ArrayList<>(checks.subList(0, 4));
+		dup.add(checks.get(0));
+		assertThat(call("POST", insp, admin, java.util.Map.of("inspectedAt", today.toString(), "checks", dup)).code())
+			.isEqualTo("INVALID_INSPECTION");
+		assertThat(call("POST", insp, admin, java.util.Map.of("inspectedAt", today.plusDays(1).toString(), "checks", checks)).code())
+			.isEqualTo("INVALID_DATE");
+		Res inspected = call("POST", insp, admin, java.util.Map.of("inspectedAt", today.toString(), "checks", checks));
+		assertThat(inspected.status()).isEqualTo(200);
+		assertThat(inspected.body().get("inspectedAt").asString()).isEqualTo(today.toString());
+		JsonNode result = inspected.body().get("inspection");
+		assertThat(result.size()).isEqualTo(5);
+		assertThat(result.get(0).get("item").asString()).isEqualTo("CLEANING");
+		assertThat(result.get(4).get("passed").asBoolean()).isFalse();
+		assertThat(result.get(4).get("note").asString()).isEqualTo("슬라이더 재교체 필요");
+		// 다시 기록하면 이전 결과를 대체한다
+		Res again = call("POST", insp, admin, java.util.Map.of("inspectedAt", today.toString(), "checks",
+			checks.stream().map(c -> java.util.Map.<String, Object>of("item", c.get("item"), "passed", true)).toList()));
+		assertThat(again.body().get("inspection").size()).isEqualTo(5);
+		assertThat(again.body().get("inspection").get(4).get("passed").asBoolean()).isTrue();
+		// 검수 기록은 운영 상태를 바꾸지 않는다. 공개 상세에도 같은 결과가 보인다
+		Res pub = call("GET", "/api/carriers/" + code, null, null);
+		assertThat(pub.body().get("status").asString()).isEqualTo("INSPECTION");
+		assertThat(pub.body().get("inspection").size()).isEqualTo(5);
+
+		// Story 기록: 날짜순으로 쌓이고, 삭제는 그 캐리어의 기록만
+		Res e1 = call("POST", path + "/events", admin,
+			java.util.Map.of("date", today.toString(), "type", "REPAIR", "title", "지퍼 교체", "detail", ""));
+		assertThat(e1.status()).isEqualTo(201);
+		Res e2 = call("POST", path + "/events", admin,
+			java.util.Map.of("date", today.minusDays(3).toString(), "type", "COLLECTED", "title", "회수"));
+		JsonNode events = e2.body().get("events");
+		assertThat(events.size()).isEqualTo(2);
+		assertThat(events.get(0).get("type").asString()).isEqualTo("COLLECTED");
+		assertThat(call("POST", path + "/events", admin,
+			java.util.Map.of("date", today.toString(), "type", "NOPE", "title", "x")).status()).isEqualTo(400);
+		long eventId = events.get(1).get("id").asLong();
+		assertThat(call("DELETE", "/api/admin/carriers/" + originalId + "/events/" + eventId, admin, null).status()).isEqualTo(404);
+		Res removed = call("DELETE", path + "/events/" + eventId, admin, null);
+		assertThat(removed.status()).isEqualTo(200);
+		assertThat(removed.body().get("events").size()).isEqualTo(1);
+
+		// 다른 테스트의 재고 계산에 끼지 않도록 운영 중지로 둔다
+		assertThat(call("PATCH", path + "/status", admin, java.util.Map.of("status", "UNAVAILABLE")).status()).isEqualTo(200);
+	}
+
+	@Test
+	void admin_edits_model_price_and_server_uses_it() throws Exception {
+		String admin = adminToken();
+		JsonNode m = call("GET", "/api/carriers?size=28", null, null).body().get(0);
+		List<String> headline = new ArrayList<>();
+		for (JsonNode h : m.get("headline")) headline.add(h.asString());
+		java.util.Map<String, Object> body = new java.util.HashMap<>(java.util.Map.of(
+			"name", m.get("name").asString(), "inch", m.get("inch").asString(), "capacity", m.get("capacity").asString(),
+			"usage", m.get("usage").asString(), "dims", m.get("dims").asString(), "weight", m.get("weight").asString(),
+			"price", m.get("price").asInt(), "extraNightPrice", m.get("extraNightPrice").asInt(),
+			"headline", String.join("\n", headline), "description", m.get("description").asString()));
+		assertThat(call("PATCH", "/api/admin/carrier-models/28", signup(), body).status()).isEqualTo(403);
+		try {
+			java.util.Map<String, Object> changed = new java.util.HashMap<>(body);
+			changed.put("price", 30000);
+			assertThat(call("PATCH", "/api/admin/carrier-models/28", admin, changed).status()).isEqualTo(204);
+			LocalDate[] w = window(2);
+			Res avail = call("GET", "/api/carriers/availability?start=" + w[0] + "&end=" + w[1], null, null);
+			assertThat(avail.body().get(2).get("totalPrice").asInt()).isEqualTo(30000);
+
+			changed.put("price", -1);
+			assertThat(call("PATCH", "/api/admin/carrier-models/28", admin, changed).status()).isEqualTo(400);
+			assertThat(call("PATCH", "/api/admin/carrier-models/99", admin, body).status()).isEqualTo(404);
+		} finally {
+			assertThat(call("PATCH", "/api/admin/carrier-models/28", admin, body).status()).isEqualTo(204);
+		}
+		JsonNode restored = call("GET", "/api/carriers?size=28", null, null).body().get(0);
+		assertThat(restored.get("headline").size()).isEqualTo(2);
+		assertThat(restored.get("price").asInt()).isEqualTo(m.get("price").asInt());
+	}
+
+	@Test
+	void sample_featured_carriers_carry_inspection_results() throws Exception {
+		JsonNode c = call("GET", "/api/carriers/RC-24-0187", null, null).body();
+		assertThat(c.get("inspection").size()).isEqualTo(5);
+		// 대표가 아닌 sample 캐리어는 검수 결과 기록이 없다 — 화면은 "통과"로 꾸미지 않는다
+		assertThat(call("GET", "/api/carriers/RC-24-S01", null, null).body().get("inspection").size()).isZero();
+	}
+
 	// ------------------------------------------------------------------ cookie session · CSRF · rate limit
 
 	@Test
 	void session_cookie_is_httponly_and_token_is_not_in_body() throws Exception {
 		String email = "cookie-" + UUID.randomUUID() + "@test.recarry";
 		Res s = call("POST", "/api/auth/signup", null,
-			java.util.Map.of("email", email, "password", "passw0rd!", "name", "쿠키", "phone", "010-1234-5678"));
+			java.util.Map.of("email", email, "password", "passw0rd!", "name", "쿠키", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		assertThat(s.body().has("token")).isFalse();
 		String cookie = s.setCookies().stream().filter(c -> c.startsWith(COOKIE + "=")).findFirst().orElseThrow();
 		assertThat(cookie).contains("HttpOnly").contains("SameSite=Lax").contains("Path=/api").contains("Secure");
@@ -463,7 +631,7 @@ class ApiIntegrationTest {
 	@Test
 	void repeated_login_failures_are_throttled() throws Exception {
 		String email = "limit-" + UUID.randomUUID() + "@test.recarry";
-		call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!", "name", "제한", "phone", "010-1234-5678"));
+		call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!", "name", "제한", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		for (int i = 0; i < 5; i++) {
 			assertThat(call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "wrong-pass1")).status()).isEqualTo(401);
 		}

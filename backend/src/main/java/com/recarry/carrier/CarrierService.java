@@ -16,6 +16,7 @@ import com.recarry.booking.Pricing;
 import com.recarry.carrier.CarrierDtos.AvailabilityResponse;
 import com.recarry.carrier.CarrierDtos.CarrierModelResponse;
 import com.recarry.carrier.CarrierDtos.CarrierResponse;
+import com.recarry.carrier.CarrierDtos.CheckResponse;
 import com.recarry.carrier.CarrierDtos.EventResponse;
 import com.recarry.common.ApiException;
 import com.recarry.common.AppProperties;
@@ -90,7 +91,7 @@ public class CarrierService {
 
 	public static CarrierResponse toResponse(Carrier c, Map<Long, CarrierStatus> today) {
 		return new CarrierResponse(c.getId(), c.getCode(), c.getModel().getSize(), c.getGrade(), displayStatus(c, today),
-			c.getCollectedFrom(), c.getRepairSummary(), c.getInspectedAt(),
-			c.getEvents().stream().map(EventResponse::of).toList());
+			c.getCollectedFrom(), c.getRepairSummary(), c.getInspectedAt(), c.isFeatured(),
+			CheckResponse.of(c.getInspection()), c.getEvents().stream().map(EventResponse::of).toList());
 	}
 }

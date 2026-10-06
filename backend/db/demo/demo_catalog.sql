@@ -12,6 +12,7 @@
 --   psql "<Supabase 접속 정보>" -v ON_ERROR_STOP=1 -f backend/db/demo/demo_catalog.sql
 --   또는 Supabase Dashboard → SQL Editor 에 붙여넣기
 --
+-- carrier_inspection_checks 는 V3 migration 이후에만 있다 — V3 가 적용된 DB 에서 실행한다.
 -- 여러 번 실행해도 같다 — 이미 있는 행은 건드리지 않는다 (ON CONFLICT DO NOTHING).
 -- 이 파일에는 DELETE / DROP 이 없다. demo 데이터 교체·제거 방법은 backend/README.md §5.
 -- ============================================================
@@ -70,5 +71,17 @@ FROM (VALUES
 ) AS e(code, d, type, title, detail)
 JOIN carriers c ON c.carrier_code = e.code
 WHERE NOT EXISTS (SELECT 1 FROM carrier_events x WHERE x.carrier_id = c.id);
+
+-- 대표 demo 캐리어의 검수 항목 결과 — Story 의 "5개 항목 통과" 와 같은 demo 값 (기록이 이미 있으면 건너뛴다)
+INSERT INTO carrier_inspection_checks (carrier_id, item, passed)
+SELECT c.id, i.item, TRUE
+FROM (VALUES
+  ('RC-20-S01'),
+  ('RC-24-S01'),
+  ('RC-28-S01')
+) AS x(code)
+JOIN carriers c ON c.carrier_code = x.code
+CROSS JOIN (VALUES ('CLEANING'), ('EXTERIOR'), ('WHEELS'), ('HANDLE'), ('ZIPPER')) AS i(item)
+WHERE NOT EXISTS (SELECT 1 FROM carrier_inspection_checks k WHERE k.carrier_id = c.id);
 
 COMMIT;

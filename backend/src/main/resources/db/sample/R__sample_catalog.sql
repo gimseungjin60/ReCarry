@@ -62,3 +62,15 @@ FROM (VALUES
 ) AS e(code, d, type, title, detail)
 JOIN carriers c ON c.carrier_code = e.code
 WHERE NOT EXISTS (SELECT 1 FROM carrier_events x WHERE x.carrier_id = c.id);
+
+-- 대표 캐리어의 검수 항목 결과 — Story 의 "5개 항목 통과" 와 같은 sample 값 (기록이 이미 있으면 건너뛴다)
+INSERT INTO carrier_inspection_checks (carrier_id, item, passed)
+SELECT c.id, i.item, TRUE
+FROM (VALUES
+  ('RC-20-0412'),
+  ('RC-24-0187'),
+  ('RC-28-0093')
+) AS x(code)
+JOIN carriers c ON c.carrier_code = x.code
+CROSS JOIN (VALUES ('CLEANING'), ('EXTERIOR'), ('WHEELS'), ('HANDLE'), ('ZIPPER')) AS i(item)
+WHERE NOT EXISTS (SELECT 1 FROM carrier_inspection_checks k WHERE k.carrier_id = c.id);

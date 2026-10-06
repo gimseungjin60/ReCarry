@@ -6,7 +6,7 @@
    여기에는 화면 전용 값(일러스트 색·크기)과 고정 UI 문구만 둔다. (CLAUDE.md §5)
    ============================================================ */
 
-import type { BagColor, CarrierSize } from './types'
+import type { BagColor, CarrierSize, InspectionItem } from './types'
 
 /** 사이즈별 일러스트 표현. 실사진이 생기면 photo 만 채운다. */
 export const PRESENTATION: Record<
@@ -25,9 +25,17 @@ export function isCarrierSize(v: string | undefined): v is CarrierSize {
   return v === '20' || v === '24' || v === '28'
 }
 
-/** 상세 페이지 검수 체크리스트 — prototype 샘플 항목.
+/** 검수 항목 이름. 결과(통과 여부)는 캐리어마다 backend 에서 온다.
     화면에 표시하는 검수 항목 수는 모두 이 배열 길이를 따른다 */
-export const INSPECTION_CHECKS = ['세척 완료', '외관 검수', '바퀴 검수', '손잡이 검수', '지퍼 검수']
+export const INSPECTION_CHECKS: { item: InspectionItem; label: string }[] = [
+  { item: 'CLEANING', label: '세척 완료' },
+  { item: 'EXTERIOR', label: '외관 검수' },
+  { item: 'WHEELS', label: '바퀴 검수' },
+  { item: 'HANDLE', label: '손잡이 검수' },
+  { item: 'ZIPPER', label: '지퍼 검수' },
+]
+
+export const inspectionLabel = (item: InspectionItem) => INSPECTION_CHECKS.find((c) => c.item === item)?.label ?? item
 
 /** 등급 안내 — Collection 하단 범례 */
 export const GRADES = [

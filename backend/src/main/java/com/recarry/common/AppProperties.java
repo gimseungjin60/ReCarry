@@ -7,7 +7,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** application.yml 의 recarry.* — 비밀 값은 모두 환경변수에서 들어온다. */
 @ConfigurationProperties("recarry")
-public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginLimit, Admin admin, Booking booking) {
+public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginLimit, Admin admin, Booking booking,
+		Legal legal) {
 
 	public record Jwt(String secret, long ttlMinutes) {}
 
@@ -27,4 +28,7 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginL
 	}
 
 	public record Booking(ZoneId zone, int maxNights) {}
+
+	/** 가입 시 동의받는 문서 버전 — 문서가 바뀌면 함께 올린다 */
+	public record Legal(String termsVersion, String privacyVersion) {}
 }

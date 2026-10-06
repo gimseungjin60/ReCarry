@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { FormEvent, InputHTMLAttributes } from 'react'
+import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import Button from '@/components/Button'
 import { ApiError } from '@/lib/api'
@@ -26,6 +26,35 @@ function Field({ label, error, ...input }: { label: string; error?: string } & I
       <input {...input} aria-invalid={!!error} />
       {error && <span className="err" style={{ display: 'block', marginTop: 6 }}>{error}</span>}
     </label>
+  )
+}
+
+/** 필수 동의 체크 + 내용 펼쳐 보기 */
+function Consent({
+  checked,
+  onChange,
+  label,
+  error,
+  children,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label: string
+  error?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="consent">
+      <label className="agree">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} aria-invalid={!!error} />
+        <span>{label}</span>
+      </label>
+      <details>
+        <summary className="small">내용 보기</summary>
+        <p className="small">{children}</p>
+      </details>
+      {error && <span className="err" style={{ display: 'block', marginTop: 6 }}>{error}</span>}
+    </div>
   )
 }
 
@@ -89,6 +118,7 @@ export function Signup() {
   const { user, signup } = useAuth()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '', name: '', phone: '' })
+  const [agree, setAgree] = useState({ agreeTerms: false, agreePrivacy: false })
   const [fields, setFields] = useState<Record<string, string>>({})
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -103,7 +133,7 @@ export function Signup() {
     setErr('')
     setFields({})
     try {
-      await signup(form)
+      await signup({ ...form, ...agree })
     } catch (x) {
       if (x instanceof ApiError) {
         setFields(x.fields)
@@ -142,6 +172,27 @@ export function Signup() {
             error={fields.phone}
           />
         </div>
+        <Consent
+          checked={agree.agreeTerms}
+          onChange={(v) => setAgree({ ...agree, agreeTerms: v })}
+          label="[필수] 이용약관에 동의합니다."
+          error={fields.agreeTerms}
+        >
+          RECARRY 는 Web MVP 단계로, 이용약관 전문은 정식 서비스 전에 확정해 안내합니다. 현재 예약은 예약 요청만 저장되며 결제·배송은
+          발생하지 않습니다.
+        </Consent>
+        <Consent
+          checked={agree.agreePrivacy}
+          onChange={(v) => setAgree({ ...agree, agreePrivacy: v })}
+          label="[필수] 개인정보 수집·이용에 동의합니다."
+          error={fields.agreePrivacy}
+        >
+          수집 항목: 이메일, 비밀번호(암호화 저장), 이름, 휴대폰 번호 · 예약 시 받는 분, 연락처, 배송 주소, 요청사항
+          <br />
+          이용 목적: 회원 식별, 로그인, 예약 요청 접수와 안내
+          <br />
+          보유 기간 등 개인정보 처리방침 전문은 정식 서비스 전에 확정해 안내합니다.
+        </Consent>
         <p className="err" role="alert">
           {err}
         </p>

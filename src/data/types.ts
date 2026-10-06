@@ -14,6 +14,15 @@ export interface StoryEntry {
   detail: string
 }
 
+/** 검수 항목 (backend InspectionCheck.Item) */
+export type InspectionItem = 'CLEANING' | 'EXTERIOR' | 'WHEELS' | 'HANDLE' | 'ZIPPER'
+
+export interface InspectionCheck {
+  item: InspectionItem
+  passed: boolean
+  note: string
+}
+
 export interface Carrier {
   key: CarrierSize
   name: string
@@ -35,6 +44,8 @@ export interface Carrier {
   collectedFrom: string
   repair: string
   inspectedAt: string
+  /** 대표 캐리어의 항목별 검수 결과. 비어 있으면 아직 기록이 없다 */
+  inspection: InspectionCheck[]
   available: number
 
   /** 상세 페이지 헤드라인. 줄바꿈을 배열로 표현한다 (HTML 주입 회피) */
@@ -89,7 +100,19 @@ export interface ApiCarrier {
   collectedFrom: string
   repairSummary: string
   inspectedAt: string | null
-  events: { date: string; type: string; title: string; detail: string }[]
+  featured: boolean
+  inspection: InspectionCheck[]
+  events: CarrierEvent[]
+}
+
+export type CarrierEventType = 'COLLECTED' | 'REPAIR' | 'CLEANING' | 'INSPECTION' | 'TRIP'
+
+export interface CarrierEvent {
+  id: number
+  date: string
+  type: CarrierEventType
+  title: string
+  detail: string
 }
 
 export interface ApiCarrierModel {

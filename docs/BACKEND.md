@@ -265,18 +265,19 @@ Vercel (frontend)  ──/api/* rewrite──▶  Spring Boot (호스팅 미정,
 Data API 차단 확인(anon · authenticated 권한 없음, 전 테이블 RLS), demo 카탈로그 입력(모델 3 · 캐리어 6 · 이벤트 15),
 prod 프로필 backend + 프론트로 E2E 확인. backend 호스팅 · Vercel 도메인은 아직 정해지지 않았다.
 
-## 15. 운영 캐리어 등록 (설계 — 아직 구현하지 않음)
+## 15. 관리자 캐리어 관리 (구현됨 — V3)
 
-운영 DB 에는 지금 demo 카탈로그만 있다 (§11). 실제 운영 데이터는 임의로 만들지 않는다.
-현재 관리자 기능(상태 변경)은 그대로 두고, 등록이 필요해지면 아래를 추가한다.
+운영 DB 에는 demo 카탈로그만 있다 (§11). 실제 운영 데이터는 임의로 만들지 않는다 — 관리자 화면(`/admin`, `/admin/carriers/:code`)으로 운영자가 입력한다.
 
 | API (ADMIN) | 내용 |
 |---|---|
-| `POST /api/admin/carrier-models` | 사이즈 상품: size · name · inch · capacity · usage · dims · weight · price · extraNightPrice · headline · description |
-| `PATCH /api/admin/carrier-models/{size}` | 가격·문구 수정 (기존 예약은 금액 스냅샷이라 영향 없음) |
-| `POST /api/admin/carriers` | 캐리어 한 대: size · carrierCode(unique) · grade · collectedFrom · repairSummary · inspectedAt — 상태는 `INSPECTION` 으로 시작, 검수 후 `AVAILABLE` |
-| `POST /api/admin/carriers/{id}/events` | 회수·수리·세척·검수·여행 기록 추가 |
+| `POST /api/admin/carriers` | 캐리어 등록: size · code(unique, 영문 대문자·숫자·하이픈) · grade · collectedFrom · repairSummary · featured? — 상태는 `INSPECTION` 으로 시작 |
+| `PATCH /api/admin/carriers/{id}` | grade · collectedFrom · repairSummary · featured(사이즈당 하나, 기존 대표 해제). Carrier ID · 사이즈는 바꾸지 않는다 (예약 기록이 참조) |
+| `PATCH /api/admin/carriers/{id}/status` | 운영 상태 4종 (전이 규칙 없음 — 운영 정책 미정) |
+| `POST /api/admin/carriers/{id}/inspection` | 항목별 검수 결과 기록 `{inspectedAt, checks[{item, passed, note}]}` — 5개 항목을 한 번씩, 검수일 ≤ 오늘(서울). 이전 결과를 대체. 운영 상태는 바꾸지 않는다 |
+| `POST /api/admin/carriers/{id}/events` · `DELETE …/events/{eventId}` | Carrier Story 기록 추가 · 삭제 |
+| `PATCH /api/admin/carrier-models/{size}` | 사이즈 상품 가격·문구 (기존 예약은 금액 스냅샷이라 영향 없음). 사이즈 추가는 없다 (화면 표현이 20/24/28 에 묶여 있다) |
 
-- 테이블은 이미 있다 (스키마 변경 없음). 검증: 코드 형식, 사이즈 존재, 등급 A/B, 가격 ≥ 0.
-- 그 전까지는 운영자가 검토한 SQL 을 Supabase SQL Editor 에서 실행하거나 versioned migration(`V2__...`) 으로 넣는다.
-  sample 파일을 운영에 재사용하지 않는다.
+- 캐리어 상세 조회는 공개 `GET /api/carriers/{code}` 를 쓴다 (응답에 `featured`, `inspection[]`, 이벤트 `id` 포함).
+- 검수 결과: `carrier_inspection_checks (carrier_id, item, passed, note)` — 캐리어의 **현재** 결과. 과정 기록은 `carrier_events(INSPECTION)`. 기록이 없으면 화면은 "기록 없음"으로 보여주고 통과로 꾸미지 않는다.
+- 삭제 API 는 없다 — 쓰지 않는 캐리어는 `UNAVAILABLE`.

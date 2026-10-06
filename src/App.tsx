@@ -9,6 +9,7 @@ import BookingComplete from '@/pages/BookingComplete'
 import { Login, Signup } from '@/pages/Auth'
 import { MyBooking, MyPage } from '@/pages/MyPage'
 import { Admin, AdminBooking } from '@/pages/Admin'
+import { AdminCarrier } from '@/pages/AdminCarrier'
 import RequireAuth from '@/components/RequireAuth'
 import { AuthProvider } from '@/lib/auth'
 
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/mypage/bookings/:bookingNumber" element={<RequireAuth><MyBooking /></RequireAuth>} />
             <Route path="/admin" element={<RequireAuth admin><Admin /></RequireAuth>} />
             <Route path="/admin/bookings/:bookingNumber" element={<RequireAuth admin><AdminBooking /></RequireAuth>} />
+            <Route path="/admin/carriers/:code" element={<RequireAuth admin><AdminCarrier /></RequireAuth>} />
             {/* 없는 경로는 홈으로 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -54,3 +54,6 @@ recarry:
   booking:
     zone: Asia/Seoul
     max-nights: 30                 # 기술적 상한. 사업 정책이 정해지면 바꾼다
+  legal:                           # 가입 시 동의받는 문서 버전 (users 에 기록). 전문 확정 전이라 draft
+    terms-version: draft
+    privacy-version: draft

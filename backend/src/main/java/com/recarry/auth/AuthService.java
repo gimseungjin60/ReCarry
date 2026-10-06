@@ -1,5 +1,6 @@
 package com.recarry.auth;
 
+import java.time.Clock;
 import java.util.Locale;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.recarry.auth.AuthDtos.LoginRequest;
 import com.recarry.auth.AuthDtos.SignupRequest;
 import com.recarry.common.ApiException;
+import com.recarry.common.AppProperties;
 import com.recarry.user.Role;
 import com.recarry.user.User;
 import com.recarry.user.UserRepository;
@@ -23,14 +25,19 @@ public class AuthService {
 	private final PasswordEncoder encoder;
 	private final TokenService tokens;
 	private final LoginRateLimiter limiter;
+	private final AppProperties props;
+	private final Clock clock;
 	/** 없는 이메일로 로그인할 때도 해시 비교 시간을 들여, 응답 시간으로 가입 여부가 드러나지 않게 한다. */
 	private final String dummyHash;
 
-	public AuthService(UserRepository users, PasswordEncoder encoder, TokenService tokens, LoginRateLimiter limiter) {
+	public AuthService(UserRepository users, PasswordEncoder encoder, TokenService tokens, LoginRateLimiter limiter,
+			AppProperties props, Clock clock) {
 		this.users = users;
 		this.encoder = encoder;
 		this.tokens = tokens;
 		this.limiter = limiter;
+		this.props = props;
+		this.clock = clock;
 		this.dummyHash = encoder.encode("timing-equalizer-not-a-real-password");
 	}
 
@@ -48,6 +55,8 @@ public class AuthService {
 			throw ApiException.conflict("EMAIL_TAKEN", "이미 가입된 이메일입니다.");
 		}
 		User user = new User(email, encoder.encode(req.password()), req.name().trim(), req.phone().trim(), Role.USER);
+		// 검증(@AssertTrue)을 통과했다 = 두 필수 항목에 동의했다. 동의한 문서 버전과 시각을 남긴다
+		user.agree(props.legal().termsVersion(), props.legal().privacyVersion(), clock.instant());
 		try {
 			users.saveAndFlush(user);
 		} catch (DataIntegrityViolationException e) {

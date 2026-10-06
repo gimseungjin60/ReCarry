@@ -25,6 +25,7 @@ export function toCarrier(m: ApiCarrierModel): Carrier {
     collectedFrom: f.collectedFrom,
     repair: f.repairSummary,
     inspectedAt: f.inspectedAt ? dot(f.inspectedAt) : '—',
+    inspection: f.inspection,
     available: m.availableCount,
     headline: m.headline,
     desc: m.description,
@@ -41,6 +42,11 @@ function load() {
   // 실패하면 다음 호출에서 다시 시도한다
   cache.catch(() => (cache = null))
   return cache
+}
+
+/** 다음 useCatalog 가 서버에서 다시 받게 한다 (가격이 바뀐 경우 등) */
+export function invalidateCatalog() {
+  cache = null
 }
 
 export interface CatalogState {

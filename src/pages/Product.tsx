@@ -8,7 +8,7 @@ import BeforeAfter from '@/components/BeforeAfter'
 import CarrierTimeline from '@/components/CarrierTimeline'
 import Calendar from '@/components/Calendar'
 import type { DateRange } from '@/components/Calendar'
-import { COMMON_SPEC, GRADE_SPEC, HOW_TO_USE, INSPECTION_CHECKS, isCarrierSize } from '@/data/carriers'
+import { COMMON_SPEC, GRADE_SPEC, HOW_TO_USE, inspectionLabel, isCarrierSize } from '@/data/carriers'
 import { useCatalog } from '@/lib/catalog'
 import type { Carrier } from '@/data/types'
 import { fmt, nights, priceFor, stayLabel, won } from '@/lib/format'
@@ -137,22 +137,32 @@ export default function Product() {
               출발 전날 문 앞 배송 · 반납일 문 앞 회수
             </p>
 
-            <ul className="checks" aria-label="검수 상태">
-              {INSPECTION_CHECKS.map((c) => (
-                <li key={c}>
-                  <span>
-                    <span className="ck" aria-hidden="true">
-                      ✓
-                    </span>
-                    {c}
-                  </span>
-                  <span className="ok">PASS</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mono muted" style={{ marginTop: 12 }}>
-              INSPECTED {p.inspectedAt} · {INSPECTION_CHECKS.length} / {INSPECTION_CHECKS.length} CHECKS
-            </p>
+            {/* 대표 캐리어(Carrier ID)의 실제 검수 기록. 기록이 없으면 통과로 꾸미지 않는다 */}
+            {p.inspection.length ? (
+              <>
+                <ul className="checks" aria-label="검수 상태">
+                  {p.inspection.map((c) => (
+                    <li key={c.item}>
+                      <span>
+                        <span className={c.passed ? 'ck' : 'ck ng'} aria-hidden="true">
+                          {c.passed ? '✓' : '!'}
+                        </span>
+                        {inspectionLabel(c.item)}
+                        {c.note && <span className="small"> · {c.note}</span>}
+                      </span>
+                      <span className={c.passed ? 'ok' : 'ok ng'}>{c.passed ? 'PASS' : '재점검'}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mono muted" style={{ marginTop: 12 }}>
+                  INSPECTED {p.inspectedAt} · {p.inspection.filter((c) => c.passed).length} / {p.inspection.length} CHECKS
+                </p>
+              </>
+            ) : (
+              <p className="small" style={{ marginTop: 40 }}>
+                {p.id} 의 항목별 검수 기록은 아직 등록되지 않았습니다.
+              </p>
+            )}
           </aside>
         </div>
 

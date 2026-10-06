@@ -40,6 +40,16 @@ public class User {
 	@Column(nullable = false)
 	private Role role = Role.USER;
 
+	/** 가입 때 동의한 이용약관 · 개인정보 처리방침 버전과 시각. 동의 기록 이전 가입자·bootstrap 관리자는 null */
+	@Column(name = "terms_version")
+	private String termsVersion;
+
+	@Column(name = "privacy_version")
+	private String privacyVersion;
+
+	@Column(name = "agreed_at")
+	private Instant agreedAt;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -65,6 +75,14 @@ public class User {
 	public String getPhone() { return phone; }
 	public Role getRole() { return role; }
 	public Instant getCreatedAt() { return createdAt; }
+
+	public Instant getAgreedAt() { return agreedAt; }
+
+	public void agree(String termsVersion, String privacyVersion, Instant at) {
+		this.termsVersion = termsVersion;
+		this.privacyVersion = privacyVersion;
+		this.agreedAt = at;
+	}
 
 	public void promoteToAdmin() {
 		this.role = Role.ADMIN;

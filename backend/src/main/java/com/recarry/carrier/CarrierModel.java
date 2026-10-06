@@ -1,11 +1,15 @@
 package com.recarry.carrier;
 
+import java.time.Instant;
+
+import org.hibernate.annotations.UpdateTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-/** 사이즈 단위 상품 정보와 요금 (읽기 전용 — 카탈로그는 migration 으로 관리한다). */
+/** 사이즈 단위 상품 정보와 요금. 사이즈 자체는 바꾸지 않는다 (화면 표현이 사이즈에 묶여 있다). */
 @Entity
 @Table(name = "carrier_models")
 public class CarrierModel {
@@ -32,7 +36,26 @@ public class CarrierModel {
 	private String headline;
 	private String description;
 
+	@UpdateTimestamp
+	@Column(name = "updated_at")
+	private Instant updatedAt;
+
 	protected CarrierModel() {}
+
+	/** 가격 · 문구 수정. 기존 예약은 금액 스냅샷이라 영향이 없다. */
+	public void edit(String name, String inch, String capacity, String usage, String dims, String weight, int price,
+			int extraNightPrice, String headline, String description) {
+		this.name = name;
+		this.inch = inch;
+		this.capacity = capacity;
+		this.usage = usage;
+		this.dims = dims;
+		this.weight = weight;
+		this.price = price;
+		this.extraNightPrice = extraNightPrice;
+		this.headline = headline;
+		this.description = description;
+	}
 
 	public Long getId() { return id; }
 	public String getSize() { return size; }

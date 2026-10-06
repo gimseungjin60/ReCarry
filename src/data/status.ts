@@ -1,6 +1,6 @@
 /* 예약·캐리어 상태의 화면 문구. 허용 전이는 backend(BookingStatus.canMoveTo)가 최종 판단한다. */
 
-import type { BookingStatus, CarrierStatus } from './types'
+import type { BookingStatus, CarrierEventType, CarrierStatus } from './types'
 
 export const BOOKING_STATUS: Record<BookingStatus, string> = {
   REQUESTED: '예약 요청',
@@ -30,3 +30,15 @@ export const CARRIER_STATUS: Record<CarrierStatus, string> = {
 
 /** 관리자가 직접 지정할 수 있는 운영 상태 (RESERVED / RENTED 는 예약에서 계산된다) */
 export const CARRIER_OPERATIONAL: CarrierStatus[] = ['AVAILABLE', 'INSPECTION', 'REPAIR', 'UNAVAILABLE']
+
+/** 예약 중 캐리어를 점유하는 상태 (backend BookingStatus.OCCUPYING 과 같다) */
+export const BOOKING_OCCUPYING: BookingStatus[] = ['REQUESTED', 'CONFIRMED', 'IN_USE']
+
+/** Carrier Story 기록 종류 */
+export const CARRIER_EVENT: Record<CarrierEventType, string> = {
+  COLLECTED: '회수',
+  REPAIR: '수리',
+  CLEANING: '세척',
+  INSPECTION: '검수',
+  TRIP: '여행',
+}

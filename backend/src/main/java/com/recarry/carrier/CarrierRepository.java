@@ -19,6 +19,11 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
 	@Query("select c from Carrier c join fetch c.model where c.code = :code")
 	Optional<Carrier> findByCode(@Param("code") String code);
 
+	boolean existsByCode(String code);
+
+	/** 사이즈 대표 캐리어 (partial unique index 로 많아야 하나) */
+	List<Carrier> findByModelAndFeaturedTrue(CarrierModel model);
+
 	/** 예약 직전에 캐리어 행을 잠근다 — 같은 캐리어에 대한 예약 생성이 한 줄로 선다. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select c from Carrier c where c.id = :id")
@@ -41,15 +46,19 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
 		""", nativeQuery = true)
 	List<Long> findFreeIds(@Param("size") String size, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
-	/** 이 캐리어가 기간 안에 이미 점유돼 있는가 (행 잠금 뒤 다시 확인할 때 쓴다) */
+	/**
+	 * 이 캐리어가 지금 AVAILABLE 이고 기간 안에 비어 있는가 (행 잠금 뒤 다시 확인할 때 쓴다).
+	 * 영속성 컨텍스트의 엔티티 값이 아니라 DB 의 현재 값을 읽는다.
+	 */
 	@Query(value = """
-		SELECT EXISTS (
+		SELECT c.status = 'AVAILABLE' AND NOT EXISTS (
 		  SELECT 1 FROM bookings b
-		  WHERE b.carrier_id = :carrierId
+		  WHERE b.carrier_id = c.id
 		    AND b.status IN ('REQUESTED', 'CONFIRMED', 'IN_USE')
 		    AND b.occupied && daterange(CAST(:start AS date) - 1, CAST(:end AS date), '[]'))
+		FROM carriers c WHERE c.id = :carrierId
 		""", nativeQuery = true)
-	boolean isOccupied(@Param("carrierId") Long carrierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+	boolean isBookable(@Param("carrierId") Long carrierId, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
 	/** 오늘 점유 중인 캐리어와 그 예약 상태 — 표시 상태(RESERVED/RENTED) 계산용 */
 	@Query(value = """

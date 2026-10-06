@@ -14,7 +14,7 @@ import type { Availability, Booking as BookingResult, CarrierSize } from '@/data
 import { nights, priceFor, stayLabel, won, ymd } from '@/lib/format'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import { useCatalog } from '@/lib/catalog'
+import { invalidateCatalog, useCatalog } from '@/lib/catalog'
 
 /* PRD §4 Booking — 로그인한 사용자만 들어온다 (App 의 RequireAuth).
    Product 에서 사이즈·날짜·보던 Carrier ID 를 받아 오며, 날짜가 있으면 prototype 처럼 Step 02 부터 시작한다.
@@ -124,6 +124,11 @@ export default function Booking() {
     } catch (x) {
       const ae = x instanceof ApiError ? x : null
       if (ae?.status === 401) return navigate('/login', { state: { from: { pathname: '/booking' } } })
+      // 요금이 바뀌었으면 카탈로그를 다시 받아 화면 금액을 서버 금액에 맞춘다 (다시 누르면 새 금액으로 요청)
+      if (ae?.code === 'PRICE_MISMATCH') {
+        invalidateCatalog()
+        catalog.retry()
+      }
       // 입력 검증 오류는 첫 번째 필드 메시지를 보여준다
       showErr(Object.values(ae?.fields ?? {})[0] ?? ae?.message ?? '예약을 저장하지 못했습니다.')
     } finally {

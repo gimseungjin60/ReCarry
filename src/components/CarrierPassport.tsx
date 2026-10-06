@@ -1,4 +1,3 @@
-import { INSPECTION_CHECKS } from '@/data/carriers'
 import type { Carrier } from '@/data/types'
 import './CarrierPassport.css'
 
@@ -27,7 +26,11 @@ export default function CarrierPassport({ carrier }: { carrier: Carrier }) {
         </div>
         <div>
           <dt>Grade</dt>
-          <dd>{carrier.grade} GRADE · {INSPECTION_CHECKS.length}/{INSPECTION_CHECKS.length}</dd>
+          <dd>
+            {carrier.grade} GRADE
+            {carrier.inspection.length > 0 &&
+              ` · ${carrier.inspection.filter((c) => c.passed).length}/${carrier.inspection.length}`}
+          </dd>
         </div>
       </dl>
     </div>

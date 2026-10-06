@@ -72,7 +72,8 @@ public class BookingService {
 
 		for (Long id : candidates) {
 			Carrier carrier = carriers.lockById(id).orElse(null);
-			if (carrier == null || carriers.isOccupied(id, req.startDate(), req.endDate())) continue;
+			// 후보를 고른 뒤 다른 예약이 들어왔거나 관리자가 운영 상태를 바꿨을 수 있다 — 잠근 뒤 다시 본다
+			if (carrier == null || !carriers.isBookable(id, req.startDate(), req.endDate())) continue;
 
 			CarrierModel model = carrier.getModel();
 			Pricing.Quote quote = Pricing.quote(model.getPrice(), model.getExtraNightPrice(), nights);
