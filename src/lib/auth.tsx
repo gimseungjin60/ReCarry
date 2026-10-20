@@ -13,6 +13,8 @@ interface AuthState {
   login: (email: string, password: string) => Promise<User>
   signup: (input: SignupInput) => Promise<User>
   logout: () => Promise<void>
+  /** 서버가 바꾼 사용자 정보로 교체 (정보 수정) · null = 탈퇴로 세션이 끝남 */
+  replaceUser: (u: User | null) => void
 }
 
 export interface SignupInput {
@@ -51,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       logout,
+      replaceUser: setUser,
       login: (email, password) =>
         api<AuthResponse>('/api/auth/login', { method: 'POST', body: { email, password } }).then((r) => {
           setUser(r.user)

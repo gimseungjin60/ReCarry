@@ -51,6 +51,10 @@ public class UserService {
 	public void withdraw(Long id, String password) {
 		User u = get(id);
 		checkPassword(u, password);
+		if (u.getRole() == Role.ADMIN) {
+			// 마지막 관리자가 사라지는 것을 막는다 — 관리자 계정 정리는 운영자가 DB/환경변수로 한다
+			throw ApiException.conflict("ADMIN_CANNOT_WITHDRAW", "관리자 계정은 탈퇴할 수 없습니다.");
+		}
 		bookings.closeForWithdrawal(id);
 		// 아무도 모르는 비밀번호의 해시 — 탈퇴 계정으로는 로그인할 수 없다
 		u.withdraw(encoder.encode(UUID.randomUUID().toString()), clock.instant());

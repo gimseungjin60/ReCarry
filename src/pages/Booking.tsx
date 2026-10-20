@@ -184,6 +184,7 @@ export default function Booking() {
             {step === 3 && <DeliveryStep form={form} onChange={setForm} range={range} />}
             {step === 4 && start && end && (
               <ConfirmStep
+                deposit={availability?.find((x) => x.size === size)?.deposit ?? null}
                 carrier={carrier}
                 start={start}
                 end={end}

@@ -27,8 +27,17 @@ import jakarta.persistence.Table;
 @Table(name = "bookings")
 public class Booking {
 
-	/** 취소 주체 — 고객 · 운영자 · 요청 기한 만료(BookingExpiry) */
-	public enum CancelReason { USER, ADMIN, EXPIRED }
+	/**
+	 * 취소 사유 — 고객 · 운영자(확정 이후) · 요청 기한 만료(BookingExpiry) · 운영자가 예약 요청을 거절(결제 전).
+	 */
+	public enum CancelReason {
+		USER, ADMIN, EXPIRED, REJECTED;
+
+		/** 결제 전(예약 요청) 단계에서 끝난 취소 — 탈퇴 시 배송 정보를 지워도 되는 기록 */
+		public boolean beforePayment() {
+			return this != ADMIN;
+		}
+	}
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

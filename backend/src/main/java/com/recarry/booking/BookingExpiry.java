@@ -3,6 +3,7 @@ package com.recarry.booking;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,20 +28,23 @@ public class BookingExpiry {
 	private final BookingRepository bookings;
 	private final Clock clock;
 	private final Duration ttl;
+	/** 정책 시행 이후 접수된 요청만 — 3일 규칙을 안내받기 전의 요청은 자동으로 취소하지 않는다 */
+	private final Instant appliesFrom;
 
 	public BookingExpiry(BookingRepository bookings, Clock clock, AppProperties props) {
 		this.bookings = bookings;
 		this.clock = clock;
 		this.ttl = Duration.ofDays(props.booking().requestExpiryDays());
+		LocalDate from = props.booking().requestExpiryFrom();
+		this.appliesFrom = from.atStartOfDay(props.booking().zone()).toInstant();
 	}
 
 	@EventListener(ApplicationReadyEvent.class)
 	@Scheduled(fixedDelay = 5 * 60 * 1000, initialDelay = 5 * 60 * 1000)
 	@Transactional
-	public int expire() {
+	public void expire() {   // void: 리스너가 값을 돌려주면 Spring 이 그 값을 다시 이벤트로 발행한다
 		Instant now = clock.instant();
-		int n = bookings.expireRequested(now.minus(ttl), now);
+		int n = bookings.expireRequested(now.minus(ttl), appliesFrom, now);
 		if (n > 0) log.info("expired {} unconfirmed booking request(s)", n);
-		return n;
 	}
 }

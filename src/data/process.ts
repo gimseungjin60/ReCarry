@@ -4,9 +4,9 @@
 import { INSPECTION_CHECKS } from './carriers'
 import type { ProcessStep } from './types'
 
-/** Circular Journey — 회수부터 다시 여행까지 6단계 */
+/** Circular Journey — 입고(중고 매입)부터 다시 여행까지 6단계 */
 export const PROCESS_STEPS: ProcessStep[] = [
-  { ko: '회수', en: 'Collect', desc: '공항·호텔·가정에서 버려질 캐리어를 수거합니다.' },
+  { ko: '입고', en: 'Source', desc: '버려지거나 쓰이지 않던 중고 캐리어를 매입해 들여옵니다.' },
   { ko: '세척', en: 'Clean', desc: '내부 원단과 외부 쉘을 세척하고 살균·탈취합니다.' },
   { ko: '수리', en: 'Repair', desc: '바퀴, 손잡이, 지퍼 같은 소모 부품을 교체합니다.' },
   { ko: '검수', en: 'Inspect', desc: `${INSPECTION_CHECKS.length}개 항목을 점검하고 A·B 등급을 매깁니다.` },

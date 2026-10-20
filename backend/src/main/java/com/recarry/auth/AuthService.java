@@ -51,6 +51,10 @@ public class AuthService {
 	@Transactional
 	public Session signup(SignupRequest req) {
 		String email = normalizeEmail(req.email());
+		// 탈퇴 계정의 비식별 이메일(User.withdraw)과 겹치지 않게 한다
+		if (email.endsWith("@" + User.WITHDRAWN_DOMAIN)) {
+			throw ApiException.badRequest("EMAIL_NOT_ALLOWED", "사용할 수 없는 이메일입니다.");
+		}
 		if (users.existsByEmail(email)) {
 			throw ApiException.conflict("EMAIL_TAKEN", "이미 가입된 이메일입니다.");
 		}

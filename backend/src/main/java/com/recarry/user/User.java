@@ -18,6 +18,9 @@ import jakarta.persistence.Table;
 @Table(name = "users")
 public class User {
 
+	/** 탈퇴 계정의 비식별 이메일 도메인 — 가입에 쓸 수 없다 (AuthService) */
+	public static final String WITHDRAWN_DOMAIN = "deleted.recarry";
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -110,7 +113,7 @@ public class User {
 	 * 같은 이메일로 다시 가입할 수 있다. 약관 동의 기록(버전 · 시각)은 개인정보가 아니므로 남긴다.
 	 */
 	public void withdraw(String unusablePasswordHash, Instant now) {
-		this.email = "deleted-" + id + "@deleted.recarry";
+		this.email = "deleted-" + id + "@" + WITHDRAWN_DOMAIN;
 		this.name = "탈퇴회원";
 		this.phone = "";
 		this.passwordHash = unusablePasswordHash;

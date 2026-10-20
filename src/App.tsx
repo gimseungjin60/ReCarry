@@ -8,8 +8,10 @@ import Booking from '@/pages/Booking'
 import BookingComplete from '@/pages/BookingComplete'
 import { Login, Signup } from '@/pages/Auth'
 import { MyBooking, MyPage } from '@/pages/MyPage'
+import { MyAccount } from '@/pages/MyAccount'
 import { Admin, AdminBooking } from '@/pages/Admin'
 import { AdminCarrier } from '@/pages/AdminCarrier'
+import Legal from '@/pages/Legal'
 import RequireAuth from '@/components/RequireAuth'
 import { AuthProvider } from '@/lib/auth'
 
@@ -42,9 +44,13 @@ export default function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
             <Route path="/mypage/bookings/:bookingNumber" element={<RequireAuth><MyBooking /></RequireAuth>} />
+            <Route path="/mypage/account" element={<RequireAuth><MyAccount /></RequireAuth>} />
             <Route path="/admin" element={<RequireAuth admin><Admin /></RequireAuth>} />
             <Route path="/admin/bookings/:bookingNumber" element={<RequireAuth admin><AdminBooking /></RequireAuth>} />
             <Route path="/admin/carriers/:code" element={<RequireAuth admin><AdminCarrier /></RequireAuth>} />
+            <Route path="/terms" element={<Legal doc="terms" />} />
+            <Route path="/privacy" element={<Legal doc="privacy" />} />
+            <Route path="/policy" element={<Legal doc="policy" />} />
             {/* 없는 경로는 홈으로 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

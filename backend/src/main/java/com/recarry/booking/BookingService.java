@@ -110,7 +110,8 @@ public class BookingService {
 	/** 사용자 취소 — REQUESTED 만. 환불은 없다 (정책 미정). */
 	@Transactional
 	public BookingResponse cancelMine(Long userId, String number) {
-		Booking b = findMine(userId, number);
+		Booking b = bookings.lockByNumber(number).filter(x -> x.getUser().getId().equals(userId))
+			.orElseThrow(() -> ApiException.notFound("BOOKING_NOT_FOUND", "예약을 찾을 수 없습니다."));
 		if (!b.getStatus().userCancellable()) {
 			throw ApiException.conflict("NOT_CANCELLABLE", "이 예약은 직접 취소할 수 없습니다. 고객센터로 문의해주세요.");
 		}
@@ -132,9 +133,12 @@ public class BookingService {
 
 	@Transactional
 	public BookingResponse changeStatus(Long adminId, String number, BookingStatus next) {
-		Booking b = findAny(number);
+		Booking b = bookings.lockByNumber(number)
+			.orElseThrow(() -> ApiException.notFound("BOOKING_NOT_FOUND", "예약을 찾을 수 없습니다."));
 		BookingStatus before = b.getStatus();
-		b.moveTo(next, clock.instant(), Booking.CancelReason.ADMIN);
+		// 결제 전 요청을 운영자가 취소하면 "거절" — 확정 이후 취소와 구분한다
+		b.moveTo(next, clock.instant(),
+			before == BookingStatus.REQUESTED ? Booking.CancelReason.REJECTED : Booking.CancelReason.ADMIN);
 		audit.record(adminId, "BOOKING_STATUS", number, before + " → " + next);
 		return respond(b, true);
 	}
@@ -153,8 +157,8 @@ public class BookingService {
 		}
 		for (Booking b : mine) {
 			if (b.getStatus() == BookingStatus.REQUESTED) b.moveTo(BookingStatus.CANCELLED, clock.instant(), Booking.CancelReason.USER);
-			if (b.getStatus() == BookingStatus.CANCELLED && (b.getCancelReason() == Booking.CancelReason.USER
-					|| b.getCancelReason() == Booking.CancelReason.EXPIRED)) {
+			if (b.getStatus() == BookingStatus.CANCELLED && b.getCancelReason() != null
+					&& b.getCancelReason().beforePayment()) {
 				b.eraseRecipient();
 			}
 		}

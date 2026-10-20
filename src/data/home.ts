@@ -10,7 +10,7 @@ export const WHY_FRAMES: { title: string; desc: string; bg: string; bag: Carrier
     bg: '#d9d5cd',
     bag: { worn: true, handle: 'down', style: { transform: 'rotate(-8deg) translateY(4%)' } },
   },
-  { title: '회수', desc: '공항·호텔·가정에서 수거합니다', bg: 'var(--stone)', bag: { worn: true, handle: 'down', tag: true } },
+  { title: '입고', desc: '쓰이지 않던 중고 캐리어를 매입합니다', bg: 'var(--stone)', bag: { worn: true, handle: 'down', tag: true } },
   { title: '복원', desc: '세척·수리·검수를 거칩니다', bg: 'var(--canvas)', bag: { handle: 'down' } },
   { title: '다시 여행', desc: '새로운 사람의 여행을 시작합니다', bg: 'var(--sand)', bag: { tag: true, tagColor: '#141413' } },
 ]

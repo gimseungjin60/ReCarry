@@ -42,7 +42,10 @@ class SessionValidator implements OAuth2TokenValidator<Jwt> {
 			.orElse(REVOKED);
 	}
 
-	/** 초 단위로 비교한다 — 토큰 iat 는 초 단위로 잘린다 */
+	/**
+	 * 초 단위로 비교한다 — 토큰 iat 는 초 단위로 잘린다.
+	 * ponytail: 변경과 같은 초에 발급된 옛 토큰은 통과한다 — 밀리초 iat 가 필요하면 별도 claim 을 둔다.
+	 */
 	private static boolean issuedBefore(Instant issuedAt, Instant validAfter) {
 		if (validAfter == null) return false;
 		return issuedAt == null || issuedAt.getEpochSecond() < validAfter.getEpochSecond();

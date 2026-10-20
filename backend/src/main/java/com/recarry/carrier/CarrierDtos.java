@@ -58,14 +58,14 @@ public final class CarrierDtos {
 		@NotBlank(message = "사이즈를 선택해주세요.") @Pattern(regexp = "^\\d{2}$", message = "사이즈 형식이 아닙니다.") String size,
 		@NotBlank(message = "Carrier ID 를 입력해주세요.") @Pattern(regexp = CODE, message = "영문 대문자 · 숫자 · 하이픈 3~20자입니다.") String code,
 		@NotBlank(message = "등급을 선택해주세요.") @Pattern(regexp = GRADE, message = "등급은 A 또는 B 입니다.") String grade,
-		@NotBlank(message = "회수처를 입력해주세요.") @Size(max = 60) String collectedFrom,
+		@NotBlank(message = "입고처를 입력해주세요.") @Size(max = 60) String collectedFrom,
 		@Size(max = 120) String repairSummary,
 		/** 없으면 대표가 아니다 */
 		Boolean featured) {}
 
 	public record CarrierUpdateRequest(
 		@NotBlank(message = "등급을 선택해주세요.") @Pattern(regexp = GRADE, message = "등급은 A 또는 B 입니다.") String grade,
-		@NotBlank(message = "회수처를 입력해주세요.") @Size(max = 60) String collectedFrom,
+		@NotBlank(message = "입고처를 입력해주세요.") @Size(max = 60) String collectedFrom,
 		@Size(max = 120) String repairSummary,
 		/** 없으면 바꾸지 않는다 */
 		Boolean featured) {}

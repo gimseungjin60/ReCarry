@@ -136,6 +136,8 @@ export interface Availability {
   available: number
   nights: number
   totalPrice: number
+  /** 보증금 (대여 요금과 별도) */
+  deposit: number
 }
 
 export type BookingStatus = 'REQUESTED' | 'CONFIRMED' | 'IN_USE' | 'RETURNED' | 'CANCELLED'
@@ -160,9 +162,14 @@ export interface Booking {
   basePrice: number
   extraPrice: number
   totalPrice: number
+  /** 보증금 — 결제 예정 금액은 totalPrice + deposit */
+  deposit: number
   cancellable: boolean
   createdAt: string
+  /** 예약 요청일 때만: 이 시각까지 확정되지 않으면 자동 취소 */
+  expiresAt: string | null
   cancelledAt: string | null
+  cancelReason: 'USER' | 'ADMIN' | 'EXPIRED' | 'REJECTED' | null
   /** 관리자 응답에만 있다 */
   customer: { id: number; email: string; name: string } | null
 }

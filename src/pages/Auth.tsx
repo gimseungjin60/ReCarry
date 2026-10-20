@@ -35,12 +35,15 @@ function Consent({
   onChange,
   label,
   error,
+  href,
   children,
 }: {
   checked: boolean
   onChange: (v: boolean) => void
   label: string
   error?: string
+  /** 전문 페이지 — 입력 중인 가입 양식을 잃지 않게 새 탭으로 연다 */
+  href: string
   children: ReactNode
 }) {
   return (
@@ -52,6 +55,9 @@ function Consent({
       <details>
         <summary className="small">내용 보기</summary>
         <p className="small">{children}</p>
+        <a className="link small" href={href} target="_blank" rel="noopener">
+          전문 보기
+        </a>
       </details>
       {error && <span className="err" style={{ display: 'block', marginTop: 6 }}>{error}</span>}
     </div>
@@ -177,21 +183,23 @@ export function Signup() {
           onChange={(v) => setAgree({ ...agree, agreeTerms: v })}
           label="[필수] 이용약관에 동의합니다."
           error={fields.agreeTerms}
+          href="/terms"
         >
-          RECARRY 는 Web MVP 단계로, 이용약관 전문은 정식 서비스 전에 확정해 안내합니다. 현재 예약은 예약 요청만 저장되며 결제·배송은
-          발생하지 않습니다.
+          예약 요청은 3일 안에 확정되지 않으면 자동 취소되며, 보증금(대여 요금의 30%)과 취소·환불은 대여 정책을 따릅니다. 현재는 예약
+          요청만 저장되고 결제·배송은 발생하지 않습니다.
         </Consent>
         <Consent
           checked={agree.agreePrivacy}
           onChange={(v) => setAgree({ ...agree, agreePrivacy: v })}
           label="[필수] 개인정보 수집·이용에 동의합니다."
           error={fields.agreePrivacy}
+          href="/privacy"
         >
           수집 항목: 이메일, 비밀번호(암호화 저장), 이름, 휴대폰 번호 · 예약 시 받는 분, 연락처, 배송 주소, 요청사항
           <br />
-          이용 목적: 회원 식별, 로그인, 예약 요청 접수와 안내
+          이용 목적: 회원 식별, 로그인, 예약 접수·배송·회수 안내
           <br />
-          보유 기간 등 개인정보 처리방침 전문은 정식 서비스 전에 확정해 안내합니다.
+          보유 기간: 탈퇴 시까지 (확정된 거래 기록은 전자상거래법에 따라 5년)
         </Consent>
         <p className="err" role="alert">
           {err}

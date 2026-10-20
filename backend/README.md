@@ -60,7 +60,7 @@ backend 는 테이블 소유자(postgres)로 접속하므로 RLS 의 영향을 �
 
 **현재 상태 (2026-09-25)**: Supabase 에 V1 · V2 적용 완료, demo 카탈로그 입력 완료(§5), E2E 확인 완료.
 
-## 4. 운영 서버 배포 (호스팅 미정)
+## 4. 운영 서버 배포 (Render)
 
 어느 서비스든 **Java 17 + 환경변수**만 있으면 된다. 전체 절차 · 체크리스트: [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md)
 **선택된 호스팅: Render** — 저장소 루트 `render.yaml` (Blueprint), 절차는 `docs/DEPLOYMENT.md` §11.

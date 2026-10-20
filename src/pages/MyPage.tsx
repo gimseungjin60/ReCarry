@@ -89,6 +89,9 @@ export function MyPage() {
             </div>
           </dl>
           <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Button to="/mypage/account" variant="secondary" small>
+              내 계정
+            </Button>
             {user.role === 'ADMIN' && (
               <Button to="/admin" variant="secondary" small>
                 관리자
@@ -157,12 +160,16 @@ export function MyBooking() {
           </p>
           {b.cancellable && (
             <div style={{ marginTop: 24 }}>
-              {/* 취소·환불 정책은 미정 — 결제 전(예약 요청) 단계만 취소할 수 있다 */}
+              {/* 결제 전(예약 요청) 단계만 직접 취소할 수 있다 — 결제 후 취소는 대여 정책 (docs/POLICY.md) */}
               <Button variant="secondary" onClick={cancel} disabled={busy}>
                 {busy ? '취소 중…' : '예약 요청 취소'}
               </Button>
               <p className="small" style={{ marginTop: 12 }}>
-                예약 요청 단계에서만 직접 취소할 수 있습니다. 취소·환불 정책은 준비 중입니다.
+                결제 전 예약 요청은 무료로 취소할 수 있습니다. 확정된 예약의 취소·환불은{' '}
+                <Link className="link" to="/policy">
+                  대여 정책
+                </Link>
+                을 따릅니다.
               </p>
             </div>
           )}

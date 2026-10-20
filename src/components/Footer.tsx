@@ -35,9 +35,11 @@ export default function Footer() {
           <div>
             <p className="label">Support</p>
             <div className="fl">
-              <span>이용 안내</span>
-              <span>파손·분실 정책 (준비 중)</span>
-              <span>자주 묻는 질문</span>
+              <Link to="/policy">대여 정책 (취소·환불·파손·분실)</Link>
+              <Link to="/terms">이용약관</Link>
+              <Link to="/privacy">
+                <b>개인정보 처리방침</b>
+              </Link>
             </div>
           </div>
 
@@ -45,7 +47,7 @@ export default function Footer() {
             <p className="label">Give a carrier</p>
             <div className="fl">
               <span>쓰지 않는 캐리어가 있나요?</span>
-              <span>캐리어 기증 (준비 중)</span>
+              <span>중고 캐리어 매입 (준비 중)</span>
             </div>
           </div>
         </div>

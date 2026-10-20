@@ -32,7 +32,7 @@ export interface CarrierBagProps {
   /** RECARRY 태그를 매단 모습 */
   tag?: boolean
   tagColor?: string
-  /** 회수 당시(수리 전) 모습 */
+  /** 입고 당시(수리 전) 모습 */
   worn?: boolean
   /** 문자열이면 그대로, 함수면 좌표를 받아 크롭 viewBox 를 만든다 */
   viewBox?: string | ((g: BagGeometry) => string)

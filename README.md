@@ -4,7 +4,7 @@
 
 ```
 frontend (repo 루트)   React + Vite + TypeScript          → Vercel
-backend/               Spring Boot 4 · Java 17 · Flyway   → 호스팅 미정 (Java 17 + 환경변수)
+backend/               Spring Boot 4 · Java 17 · Flyway   → Render (Docker, render.yaml)
 database               PostgreSQL                         → 로컬 클러스터 / Supabase (운영)
 ```
 
@@ -16,7 +16,8 @@ database               PostgreSQL                         → 로컬 클러스�
 결제 · 배송 · 외부 알림은 아직 없다. 가격 · 재고 · 회수처 등은 **sample** 값이다.
 
 **현재 상태**: 운영 DB(Supabase)에 스키마(V1 · V2) 적용, 시연용 **demo** 카탈로그 입력, E2E 확인 완료.
-backend 호스팅은 **Render**(`render.yaml`)로 정했다 — 아직 배포 전. 절차는 `docs/DEPLOYMENT.md` §11. CI: `.github/workflows/ci.yml`.
+backend 는 **Render**(`render.yaml`)에 배포되어 있다 (master push 시 자동 배포 · 기동 시 Flyway migration). 절차는 `docs/DEPLOYMENT.md` §11. CI: `.github/workflows/ci.yml`.
+운영 정책(보증금 · 요청 만료 · 취소/환불)과 결정 기록은 `docs/POLICY.md`.
 
 ## 로컬 개발
 

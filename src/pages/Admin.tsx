@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import BookingTicket from '@/components/BookingTicket'
 import { CarrierCreate, ModelEditor } from '@/pages/AdminCarrier'
+import { AuditLog, Schedule } from '@/pages/AdminOps'
 import { BOOKING_NEXT, BOOKING_STATUS, CARRIER_OPERATIONAL, CARRIER_STATUS } from '@/data/status'
 import type { ApiCarrier, Booking, BookingStatus, CarrierSize, CarrierStatus } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
@@ -16,6 +17,7 @@ export function Admin() {
   const [carriers, setCarriers] = useState<ApiCarrier[] | null>(null)
   const [bookings, setBookings] = useState<Booking[] | null>(null)
   const [filter, setFilter] = useState<BookingStatus | ''>('')
+  const [version, setVersion] = useState(0)
   const [err, setErr] = useState('')
 
   const fail = (e: unknown) => setErr(e instanceof ApiError ? e.message : '요청을 처리하지 못했습니다.')
@@ -48,6 +50,7 @@ export function Admin() {
       await api(`/api/admin/bookings/${number}/status`, { method: 'PATCH', body: { status } })
       // 예약 상태가 바뀌면 캐리어의 오늘 상태(예약됨·대여 중)도 바뀔 수 있다
       await Promise.all([loadBookings(), loadCarriers()])
+      setVersion((v) => v + 1)
     } catch (e) {
       fail(e)
     }
@@ -86,6 +89,8 @@ export function Admin() {
         </div>
       </section>
 
+      <Schedule version={version} />
+
       <section className="adm-sec" aria-labelledby="adm-carriers">
         <h2 className="t-title" id="adm-carriers">
           캐리어
@@ -102,7 +107,7 @@ export function Admin() {
                 <th>Carrier ID</th>
                 <th>사이즈</th>
                 <th>등급</th>
-                <th>회수처</th>
+                <th>입고처</th>
                 <th>검수일</th>
                 <th>검수 결과</th>
                 <th>오늘 상태</th>
@@ -226,6 +231,8 @@ export function Admin() {
           </div>
         )}
       </section>
+
+      <AuditLog />
     </div>
   )
 }

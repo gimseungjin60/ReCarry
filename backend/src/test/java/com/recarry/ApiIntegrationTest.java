@@ -59,6 +59,8 @@ class ApiIntegrationTest {
 		r.add("recarry.jwt.secret", () -> JWT_SECRET);
 		r.add("recarry.admin.email", () -> ADMIN_EMAIL);
 		r.add("recarry.admin.password", () -> ADMIN_PASSWORD);
+		// 만료 정책 시행일 이전으로 되돌린 created_at 도 대상이 되게 한다
+		r.add("recarry.booking.request-expiry-from", () -> "2000-01-01");
 	}
 
 	@LocalServerPort
@@ -599,7 +601,7 @@ class ApiIntegrationTest {
 		String fresh = call("POST", "/api/bookings", user, booking("20", null, w, null)).body().get("bookingNumber").asString();
 		jdbc.update("UPDATE bookings SET created_at = now() - interval '3 days 1 minute' WHERE booking_number = ?", old);
 
-		assertThat(expiry.expire()).isGreaterThanOrEqualTo(1);
+		expiry.expire();
 		JsonNode expired = call("GET", "/api/bookings/" + old, user, null).body();
 		assertThat(expired.get("status").asString()).isEqualTo("CANCELLED");
 		assertThat(expired.get("cancelReason").asString()).isEqualTo("EXPIRED");
@@ -651,7 +653,12 @@ class ApiIntegrationTest {
 		String user = call("POST", "/api/auth/signup", null, signupBody).session();
 		String confirmed = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
 		String requested = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
+		String rejected = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
 		call("PATCH", "/api/admin/bookings/" + confirmed + "/status", admin, java.util.Map.of("status", "CONFIRMED"));
+		call("PATCH", "/api/admin/bookings/" + rejected + "/status", admin, java.util.Map.of("status", "CANCELLED"));
+		// 관리자 계정은 탈퇴할 수 없다
+		assertThat(call("POST", "/api/users/me/withdraw", admin, java.util.Map.of("password", ADMIN_PASSWORD)).code())
+			.isEqualTo("ADMIN_CANNOT_WITHDRAW");
 
 		assertThat(call("POST", "/api/users/me/withdraw", user, java.util.Map.of("password", "wrong-pass1")).code()).isEqualTo("WRONG_PASSWORD");
 		assertThat(call("POST", "/api/users/me/withdraw", user, java.util.Map.of("password", "passw0rd!")).code()).isEqualTo("HAS_ACTIVE_BOOKING");
@@ -668,10 +675,18 @@ class ApiIntegrationTest {
 		assertThat(erased.get("status")).isEqualTo("CANCELLED");
 		assertThat(erased.get("cancel_reason")).isEqualTo("USER");
 		assertThat(erased.get("address")).isEqualTo("");
+		// 운영자가 거절한 예약 요청(결제 전)도 지운다
+		var rej = jdbc.queryForMap("SELECT cancel_reason, address FROM bookings WHERE booking_number = ?", rejected);
+		assertThat(rej.get("cancel_reason")).isEqualTo("REJECTED");
+		assertThat(rej.get("address")).isEqualTo("");
 		assertThat(jdbc.queryForObject("SELECT address FROM bookings WHERE booking_number = ?", String.class, confirmed)).isNotEmpty();
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE email = ?", Integer.class, email)).isZero();
 		// 같은 이메일로 다시 가입할 수 있다
 		assertThat(call("POST", "/api/auth/signup", null, signupBody).status()).isEqualTo(201);
+		// 탈퇴 계정의 비식별 이메일 도메인으로는 가입할 수 없다 (탈퇴를 막는 선점 방지)
+		java.util.Map<String, Object> squat = new java.util.HashMap<>(signupBody);
+		squat.put("email", "deleted-1@deleted.recarry");
+		assertThat(call("POST", "/api/auth/signup", null, squat).code()).isEqualTo("EMAIL_NOT_ALLOWED");
 	}
 
 	@Test
@@ -692,7 +707,8 @@ class ApiIntegrationTest {
 		String user = signup();
 		String number = call("POST", "/api/bookings", user, booking("24", null, window(3), null)).body().get("bookingNumber").asString();
 		call("PATCH", "/api/admin/bookings/" + number + "/status", admin, java.util.Map.of("status", "CANCELLED"));
-		assertThat(call("GET", "/api/bookings/" + number, user, null).body().get("cancelReason").asString()).isEqualTo("ADMIN");
+		// 결제 전 요청을 운영자가 취소하면 "거절"(REJECTED)
+		assertThat(call("GET", "/api/bookings/" + number, user, null).body().get("cancelReason").asString()).isEqualTo("REJECTED");
 
 		Res logs = call("GET", "/api/admin/audit-logs", admin, null);
 		assertThat(logs.status()).isEqualTo(200);

@@ -19,6 +19,14 @@ export const BOOKING_NEXT: Record<BookingStatus, BookingStatus[]> = {
   CANCELLED: [],
 }
 
+/** 취소 주체 */
+export const CANCEL_REASON: Record<'USER' | 'ADMIN' | 'EXPIRED' | 'REJECTED', string> = {
+  USER: '고객 취소',
+  ADMIN: '운영자 취소',
+  EXPIRED: '요청 기한 만료',
+  REJECTED: '예약 요청 거절',
+}
+
 export const CARRIER_STATUS: Record<CarrierStatus, string> = {
   AVAILABLE: '대여 가능',
   INSPECTION: '세척·검수 중',
@@ -36,7 +44,7 @@ export const BOOKING_OCCUPYING: BookingStatus[] = ['REQUESTED', 'CONFIRMED', 'IN
 
 /** Carrier Story 기록 종류 */
 export const CARRIER_EVENT: Record<CarrierEventType, string> = {
-  COLLECTED: '회수',
+  COLLECTED: '입고',
   REPAIR: '수리',
   CLEANING: '세척',
   INSPECTION: '검수',

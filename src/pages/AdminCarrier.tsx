@@ -113,7 +113,7 @@ function CarrierInfoFields({ value, onChange }: { value: Info; onChange: (v: Par
           </select>
         </label>
         <label className="field">
-          <span className="l">회수처 (범주)</span>
+          <span className="l">입고처 (매입·회수 경로)</span>
           <input maxLength={60} value={value.collectedFrom} onChange={(e) => onChange({ collectedFrom: e.target.value })} />
         </label>
       </div>

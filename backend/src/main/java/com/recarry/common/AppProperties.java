@@ -27,8 +27,12 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginL
 		}
 	}
 
-	/** depositPercent: 보증금 비율(대여 요금 대비 %) · requestExpiryDays: 예약 요청 자동 만료(일) */
-	public record Booking(ZoneId zone, int maxNights, int depositPercent, int requestExpiryDays) {}
+	/**
+	 * depositPercent: 보증금 비율(대여 요금 대비 %) · requestExpiryDays: 예약 요청 자동 만료(일)
+	 * requestExpiryFrom: 이 날짜(서비스 지역 기준) 이후 접수된 요청에만 만료를 적용한다
+	 */
+	public record Booking(ZoneId zone, int maxNights, int depositPercent, int requestExpiryDays,
+			java.time.LocalDate requestExpiryFrom) {}
 
 	/** 가입 시 동의받는 문서 버전 — 문서가 바뀌면 함께 올린다 */
 	public record Legal(String termsVersion, String privacyVersion) {}
