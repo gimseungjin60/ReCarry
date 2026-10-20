@@ -70,8 +70,11 @@ public class CarrierService {
 	public List<AvailabilityResponse> availability(LocalDate start, LocalDate end) {
 		int nights = dates.validate(start, end);
 		return listModels(null).stream()
-			.map(m -> new AvailabilityResponse(m.size(), carriers.findFreeIds(m.size(), start, end).size(), nights,
-				Pricing.quote(m.price(), m.extraNightPrice(), nights).total()))
+			.map(m -> {
+				int total = Pricing.quote(m.price(), m.extraNightPrice(), nights).total();
+				return new AvailabilityResponse(m.size(), carriers.findFreeIds(m.size(), start, end).size(), nights,
+					total, Pricing.deposit(total, props.booking().depositPercent()));
+			})
 			.toList();
 	}
 

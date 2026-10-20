@@ -196,8 +196,8 @@ class ApiIntegrationTest {
 			"name", "동의", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		assertThat(ok.status()).isEqualTo(201);
 		var row = jdbc.queryForMap("SELECT terms_version, privacy_version, agreed_at FROM users WHERE email = ?", email);
-		assertThat(row.get("terms_version")).isEqualTo("draft");
-		assertThat(row.get("privacy_version")).isEqualTo("draft");
+		assertThat(row.get("terms_version")).isEqualTo("2026-10-20");
+		assertThat(row.get("privacy_version")).isEqualTo("2026-10-20");
 		assertThat(row.get("agreed_at")).isNotNull();
 	}
 
@@ -261,6 +261,9 @@ class ApiIntegrationTest {
 		assertThat(b.get("extraPrice").asInt()).isEqualTo(10000);
 		assertThat(b.get("carrierCode").asString()).isEqualTo("RC-24-0187");
 		assertThat(b.get("deliveryDate").asString()).isEqualTo(w[0].minusDays(1).toString());
+		// 보증금 = 대여 요금 30%, 100원 미만 버림 (35,900 → 10,770 → 10,700). 대여 요금 합계와 별도
+		assertThat(b.get("deposit").asInt()).isEqualTo(10700);
+		assertThat(b.get("expiresAt").isNull()).isFalse();
 		assertThat(b.get("customer").isNull()).isTrue();
 		String number = b.get("bookingNumber").asString();
 		assertThat(number).matches("RB-\\d{6}-[A-Z2-9]{6}");
@@ -579,6 +582,131 @@ class ApiIntegrationTest {
 		assertThat(c.get("inspection").size()).isEqualTo(5);
 		// 대표가 아닌 sample 캐리어는 검수 결과 기록이 없다 — 화면은 "통과"로 꾸미지 않는다
 		assertThat(call("GET", "/api/carriers/RC-24-S01", null, null).body().get("inspection").size()).isZero();
+	}
+
+	// ------------------------------------------------------------------ 예약 요청 만료 · 보증금
+
+	@Autowired
+	com.recarry.booking.BookingExpiry expiry;
+
+	@Test
+	void unconfirmed_requests_expire_after_three_days_and_free_the_carrier() throws Exception {
+		String user = signup();
+		LocalDate[] w = window(3);
+		Res avail = call("GET", "/api/carriers/availability?start=" + w[0] + "&end=" + w[1], null, null);
+		assertThat(avail.body().get(2).get("deposit").asInt()).isEqualTo(37900 * 30 / 100 / 100 * 100);
+		String old = call("POST", "/api/bookings", user, booking("28", null, w, null)).body().get("bookingNumber").asString();
+		String fresh = call("POST", "/api/bookings", user, booking("20", null, w, null)).body().get("bookingNumber").asString();
+		jdbc.update("UPDATE bookings SET created_at = now() - interval '3 days 1 minute' WHERE booking_number = ?", old);
+
+		assertThat(expiry.expire()).isGreaterThanOrEqualTo(1);
+		JsonNode expired = call("GET", "/api/bookings/" + old, user, null).body();
+		assertThat(expired.get("status").asString()).isEqualTo("CANCELLED");
+		assertThat(expired.get("cancelReason").asString()).isEqualTo("EXPIRED");
+		assertThat(expired.get("expiresAt").isNull()).isTrue();
+		assertThat(call("GET", "/api/bookings/" + fresh, user, null).body().get("status").asString()).isEqualTo("REQUESTED");
+		// 만료된 요청이 잡고 있던 28" 가 다시 예약 가능
+		assertThat(call("GET", "/api/carriers/availability?start=" + w[0] + "&end=" + w[1], null, null)
+			.body().get(2).get("available").asInt()).isEqualTo(1);
+	}
+
+	// ------------------------------------------------------------------ 내 계정
+
+	@Test
+	void profile_update_and_password_change_revokes_other_sessions() throws Exception {
+		String email = "acct-" + UUID.randomUUID() + "@test.recarry";
+		String first = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "계정", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).session();
+		String second = call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "passw0rd!")).session();
+
+		Res updated = call("PATCH", "/api/users/me", first, java.util.Map.of("name", "새이름", "phone", "010-9999-8888"));
+		assertThat(updated.status()).isEqualTo(200);
+		assertThat(updated.body().get("name").asString()).isEqualTo("새이름");
+		assertThat(call("PATCH", "/api/users/me", first, java.util.Map.of("name", "", "phone", "x")).status()).isEqualTo(400);
+
+		Res wrong = call("POST", "/api/users/me/password", first,
+			java.util.Map.of("currentPassword", "nope-pass1", "newPassword", "newpassw0rd"));
+		assertThat(wrong.status()).isEqualTo(400);
+		assertThat(wrong.code()).isEqualTo("WRONG_PASSWORD");
+		Thread.sleep(1100); // 토큰 iat 는 초 단위 — 변경 시각과 다른 초에 발급된 토큰임을 보장
+		Res changed = call("POST", "/api/users/me/password", first,
+			java.util.Map.of("currentPassword", "passw0rd!", "newPassword", "newpassw0rd"));
+		assertThat(changed.status()).isEqualTo(204);
+		String renewed = changed.session();
+		assertThat(renewed).isNotNull();
+		// 다른 기기(second)와 변경 전 토큰(first)은 끊기고, 새 쿠키는 쓸 수 있다
+		assertThat(call("GET", "/api/users/me", second, null).status()).isEqualTo(401);
+		assertThat(call("GET", "/api/users/me", first, null).status()).isEqualTo(401);
+		assertThat(call("GET", "/api/users/me", renewed, null).status()).isEqualTo(200);
+		assertThat(call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "passw0rd!")).status()).isEqualTo(401);
+		assertThat(call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "newpassw0rd")).status()).isEqualTo(200);
+	}
+
+	@Test
+	void withdrawal_is_blocked_by_active_booking_then_anonymizes_account() throws Exception {
+		String admin = adminToken();
+		String email = "bye-" + UUID.randomUUID() + "@test.recarry";
+		java.util.Map<String, Object> signupBody = java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "탈퇴", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true);
+		String user = call("POST", "/api/auth/signup", null, signupBody).session();
+		String confirmed = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
+		String requested = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
+		call("PATCH", "/api/admin/bookings/" + confirmed + "/status", admin, java.util.Map.of("status", "CONFIRMED"));
+
+		assertThat(call("POST", "/api/users/me/withdraw", user, java.util.Map.of("password", "wrong-pass1")).code()).isEqualTo("WRONG_PASSWORD");
+		assertThat(call("POST", "/api/users/me/withdraw", user, java.util.Map.of("password", "passw0rd!")).code()).isEqualTo("HAS_ACTIVE_BOOKING");
+
+		call("PATCH", "/api/admin/bookings/" + confirmed + "/status", admin, java.util.Map.of("status", "CANCELLED"));
+		Res bye = call("POST", "/api/users/me/withdraw", user, java.util.Map.of("password", "passw0rd!"));
+		assertThat(bye.status()).isEqualTo(204);
+		assertThat(bye.setCookies()).anyMatch(c -> c.contains("Max-Age=0"));
+		assertThat(call("GET", "/api/users/me", user, null).status()).isEqualTo(401);
+		assertThat(call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "passw0rd!")).status()).isEqualTo(401);
+
+		// 남은 예약 요청은 고객 취소로 닫히고 배송 정보가 지워진다. 운영자가 취소한(확정됐던) 예약은 기록을 남긴다
+		var erased = jdbc.queryForMap("SELECT status, cancel_reason, phone, address FROM bookings WHERE booking_number = ?", requested);
+		assertThat(erased.get("status")).isEqualTo("CANCELLED");
+		assertThat(erased.get("cancel_reason")).isEqualTo("USER");
+		assertThat(erased.get("address")).isEqualTo("");
+		assertThat(jdbc.queryForObject("SELECT address FROM bookings WHERE booking_number = ?", String.class, confirmed)).isNotEmpty();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE email = ?", Integer.class, email)).isZero();
+		// 같은 이메일로 다시 가입할 수 있다
+		assertThat(call("POST", "/api/auth/signup", null, signupBody).status()).isEqualTo(201);
+	}
+
+	@Test
+	void role_change_takes_effect_on_existing_tokens() throws Exception {
+		String email = "role-" + UUID.randomUUID() + "@test.recarry";
+		String token = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "권한", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).session();
+		assertThat(call("GET", "/api/bookings", token, null).status()).isEqualTo(200);
+		jdbc.update("UPDATE users SET role = 'ADMIN' WHERE email = ?", email);
+		// 토큰에 적힌 권한이 지금 권한과 다르면 다시 로그인해야 한다
+		assertThat(call("GET", "/api/bookings", token, null).status()).isEqualTo(401);
+		jdbc.update("UPDATE users SET role = 'USER' WHERE email = ?", email);
+	}
+
+	@Test
+	void admin_changes_are_recorded_in_audit_log() throws Exception {
+		String admin = adminToken();
+		String user = signup();
+		String number = call("POST", "/api/bookings", user, booking("24", null, window(3), null)).body().get("bookingNumber").asString();
+		call("PATCH", "/api/admin/bookings/" + number + "/status", admin, java.util.Map.of("status", "CANCELLED"));
+		assertThat(call("GET", "/api/bookings/" + number, user, null).body().get("cancelReason").asString()).isEqualTo("ADMIN");
+
+		Res logs = call("GET", "/api/admin/audit-logs", admin, null);
+		assertThat(logs.status()).isEqualTo(200);
+		boolean found = false;
+		for (JsonNode l : logs.body()) {
+			if (l.get("target").asString().equals(number)) {
+				found = true;
+				assertThat(l.get("action").asString()).isEqualTo("BOOKING_STATUS");
+				assertThat(l.get("detail").asString()).isEqualTo("REQUESTED → CANCELLED");
+				assertThat(l.get("admin").asString()).isEqualTo(ADMIN_EMAIL);
+			}
+		}
+		assertThat(found).isTrue();
+		assertThat(call("GET", "/api/admin/audit-logs", user, null).status()).isEqualTo(403);
 	}
 
 	// ------------------------------------------------------------------ cookie session · CSRF · rate limit

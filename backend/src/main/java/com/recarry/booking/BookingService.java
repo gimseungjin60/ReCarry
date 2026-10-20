@@ -2,6 +2,7 @@ package com.recarry.booking;
 
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.recarry.admin.AuditService;
 import com.recarry.booking.BookingDtos.BookingRequest;
 import com.recarry.booking.BookingDtos.BookingResponse;
 import com.recarry.carrier.Carrier;
@@ -33,16 +35,20 @@ public class BookingService {
 	private final BookingDates dates;
 	private final Clock clock;
 	private final AppProperties props;
+	private final AuditService audit;
+	private final Duration requestTtl;
 	private final SecureRandom random = new SecureRandom();
 
 	public BookingService(BookingRepository bookings, CarrierRepository carriers, UserRepository users,
-			BookingDates dates, Clock clock, AppProperties props) {
+			BookingDates dates, Clock clock, AppProperties props, AuditService audit) {
 		this.bookings = bookings;
 		this.carriers = carriers;
 		this.users = users;
 		this.dates = dates;
 		this.clock = clock;
 		this.props = props;
+		this.audit = audit;
+		this.requestTtl = Duration.ofDays(props.booking().requestExpiryDays());
 	}
 
 	/**
@@ -84,21 +90,21 @@ public class BookingService {
 
 			Booking booking = new Booking(newNumber(), user, carrier, req.startDate(), req.endDate(), nights,
 				req.recipientName().trim(), req.phone().trim(), req.address().trim(), blankIfNull(req.addressDetail()),
-				blankIfNull(req.requestMessage()), quote);
+				blankIfNull(req.requestMessage()), quote, Pricing.deposit(quote.total(), props.booking().depositPercent()));
 			bookings.saveAndFlush(booking);
-			return BookingResponse.of(booking, false);
+			return respond(booking, false);
 		}
 		throw ApiException.conflict("CARRIER_UNAVAILABLE", "선택한 기간에 예약할 수 있는 캐리어가 없습니다.");
 	}
 
 	@Transactional(readOnly = true)
 	public List<BookingResponse> listMine(Long userId) {
-		return bookings.findMine(userId).stream().map(b -> BookingResponse.of(b, false)).toList();
+		return bookings.findMine(userId).stream().map(b -> respond(b, false)).toList();
 	}
 
 	@Transactional(readOnly = true)
 	public BookingResponse getMine(Long userId, String number) {
-		return BookingResponse.of(findMine(userId, number), false);
+		return respond(findMine(userId, number), false);
 	}
 
 	/** 사용자 취소 — REQUESTED 만. 환불은 없다 (정책 미정). */
@@ -108,27 +114,50 @@ public class BookingService {
 		if (!b.getStatus().userCancellable()) {
 			throw ApiException.conflict("NOT_CANCELLABLE", "이 예약은 직접 취소할 수 없습니다. 고객센터로 문의해주세요.");
 		}
-		b.moveTo(BookingStatus.CANCELLED, clock.instant());
-		return BookingResponse.of(b, false);
+		b.moveTo(BookingStatus.CANCELLED, clock.instant(), Booking.CancelReason.USER);
+		return respond(b, false);
 	}
 
 	// ---------------------------------------------------------------- admin
 
 	@Transactional(readOnly = true)
 	public List<BookingResponse> listAll(BookingStatus status) {
-		return bookings.findAllForAdmin(status).stream().map(b -> BookingResponse.of(b, true)).toList();
+		return bookings.findAllForAdmin(status).stream().map(b -> respond(b, true)).toList();
 	}
 
 	@Transactional(readOnly = true)
 	public BookingResponse getAny(String number) {
-		return BookingResponse.of(findAny(number), true);
+		return respond(findAny(number), true);
 	}
 
 	@Transactional
-	public BookingResponse changeStatus(String number, BookingStatus next) {
+	public BookingResponse changeStatus(Long adminId, String number, BookingStatus next) {
 		Booking b = findAny(number);
-		b.moveTo(next, clock.instant());
-		return BookingResponse.of(b, true);
+		BookingStatus before = b.getStatus();
+		b.moveTo(next, clock.instant(), Booking.CancelReason.ADMIN);
+		audit.record(adminId, "BOOKING_STATUS", number, before + " → " + next);
+		return respond(b, true);
+	}
+
+	/**
+	 * 탈퇴 전 정리: 진행 중(확정 · 이용 중) 예약이 있으면 탈퇴할 수 없다.
+	 * 예약 요청은 취소하고, 결제 전 단계에서 끝난 예약(고객 취소 · 기한 만료)의 배송 정보는 지운다.
+	 * 확정 이후의 예약 기록은 거래 기록 보관 의무 때문에 남긴다 (docs/POLICY.md).
+	 */
+	@Transactional
+	public void closeForWithdrawal(Long userId) {
+		List<Booking> mine = bookings.findMine(userId);
+		if (mine.stream().anyMatch(b -> b.getStatus() == BookingStatus.CONFIRMED || b.getStatus() == BookingStatus.IN_USE)) {
+			throw ApiException.conflict("HAS_ACTIVE_BOOKING",
+				"확정되었거나 이용 중인 예약이 있어 탈퇴할 수 없습니다. 반납이 끝난 뒤 다시 시도해주세요.");
+		}
+		for (Booking b : mine) {
+			if (b.getStatus() == BookingStatus.REQUESTED) b.moveTo(BookingStatus.CANCELLED, clock.instant(), Booking.CancelReason.USER);
+			if (b.getStatus() == BookingStatus.CANCELLED && (b.getCancelReason() == Booking.CancelReason.USER
+					|| b.getCancelReason() == Booking.CancelReason.EXPIRED)) {
+				b.eraseRecipient();
+			}
+		}
 	}
 
 	// ----------------------------------------------------------------
@@ -142,6 +171,10 @@ public class BookingService {
 	private Booking findAny(String number) {
 		return bookings.findByNumber(number)
 			.orElseThrow(() -> ApiException.notFound("BOOKING_NOT_FOUND", "예약을 찾을 수 없습니다."));
+	}
+
+	private BookingResponse respond(Booking b, boolean withCustomer) {
+		return BookingResponse.of(b, withCustomer, requestTtl);
 	}
 
 	private boolean sizeExists(String size) {

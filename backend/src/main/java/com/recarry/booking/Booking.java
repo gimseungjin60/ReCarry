@@ -27,6 +27,9 @@ import jakarta.persistence.Table;
 @Table(name = "bookings")
 public class Booking {
 
+	/** 취소 주체 — 고객 · 운영자 · 요청 기한 만료(BookingExpiry) */
+	public enum CancelReason { USER, ADMIN, EXPIRED }
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -75,12 +78,20 @@ public class Booking {
 	@Column(name = "total_price", nullable = false, updatable = false)
 	private int totalPrice;
 
+	/** 보증금 스냅샷 (대여 요금과 별도) */
+	@Column(nullable = false, updatable = false)
+	private int deposit;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private BookingStatus status = BookingStatus.REQUESTED;
 
 	@Column(name = "cancelled_at")
 	private Instant cancelledAt;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "cancel_reason")
+	private CancelReason cancelReason;
 
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
@@ -94,7 +105,7 @@ public class Booking {
 
 	public Booking(String bookingNumber, User user, Carrier carrier, LocalDate startDate, LocalDate endDate, int nights,
 			String recipientName, String phone, String address, String addressDetail, String requestMessage,
-			Pricing.Quote quote) {
+			Pricing.Quote quote, int deposit) {
 		this.bookingNumber = bookingNumber;
 		this.user = user;
 		this.carrier = carrier;
@@ -109,16 +120,29 @@ public class Booking {
 		this.basePrice = quote.base();
 		this.extraPrice = quote.extra();
 		this.totalPrice = quote.total();
+		this.deposit = deposit;
 	}
 
 	/** 전이 규칙을 어기면 거절한다. */
-	public void moveTo(BookingStatus next, Instant now) {
+	public void moveTo(BookingStatus next, Instant now, CancelReason reason) {
 		if (!status.canMoveTo(next)) {
 			throw ApiException.conflict("INVALID_STATUS_TRANSITION",
 				"예약 상태를 " + status + " 에서 " + next + " 로 바꿀 수 없습니다.");
 		}
 		this.status = next;
-		if (next == BookingStatus.CANCELLED) this.cancelledAt = now;
+		if (next == BookingStatus.CANCELLED) {
+			this.cancelledAt = now;
+			this.cancelReason = reason;
+		}
+	}
+
+	/** 탈퇴한 고객의 결제 전 취소 예약 — 보관 의무가 없는 배송 정보를 지운다 (docs/POLICY.md) */
+	public void eraseRecipient() {
+		this.recipientName = "탈퇴회원";
+		this.phone = "";
+		this.address = "";
+		this.addressDetail = "";
+		this.requestMessage = "";
 	}
 
 	public Long getId() { return id; }
@@ -137,6 +161,8 @@ public class Booking {
 	public int getExtraPrice() { return extraPrice; }
 	public int getTotalPrice() { return totalPrice; }
 	public BookingStatus getStatus() { return status; }
+	public int getDeposit() { return deposit; }
 	public Instant getCancelledAt() { return cancelledAt; }
+	public CancelReason getCancelReason() { return cancelReason; }
 	public Instant getCreatedAt() { return createdAt; }
 }

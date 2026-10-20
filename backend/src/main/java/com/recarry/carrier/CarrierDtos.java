@@ -45,8 +45,8 @@ public final class CarrierDtos {
 			String dims, String weight, int price, int extraNightPrice, List<String> headline, String description,
 			int availableCount, CarrierResponse featured) {}
 
-	/** 기간 안에 예약 가능한 대수와 서버가 계산한 금액 */
-	public record AvailabilityResponse(String size, int available, int nights, int totalPrice) {}
+	/** 기간 안에 예약 가능한 대수와 서버가 계산한 금액. deposit 은 대여 요금과 별도인 보증금 */
+	public record AvailabilityResponse(String size, int available, int nights, int totalPrice, int deposit) {}
 
 	// ---------------------------------------------------------------- admin 요청
 

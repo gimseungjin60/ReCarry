@@ -12,6 +12,11 @@ public final class Pricing {
 
 	public record Quote(int base, int extra, int total) {}
 
+	/** 보증금 = 대여 요금 × percent%, 100원 미만 버림. 대여 요금과 별도로 받고 반납 후 돌려준다 (docs/POLICY.md). */
+	public static int deposit(int total, int percent) {
+		return total * percent / 100 / 100 * 100;
+	}
+
 	public static Quote quote(int price, int extraNightPrice, int nights) {
 		int extra = Math.max(0, nights - INCLUDED_NIGHTS) * extraNightPrice;
 		return new Quote(price, extra, price + extra);

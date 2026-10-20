@@ -3,6 +3,8 @@ package com.recarry.admin;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.recarry.admin.AuditService.AuditResponse;
+import com.recarry.auth.CurrentUser;
 import com.recarry.booking.BookingDtos.BookingResponse;
 import com.recarry.booking.BookingDtos.StatusChangeRequest;
 import com.recarry.booking.BookingService;
@@ -37,10 +41,18 @@ public class AdminController {
 
 	private final CarrierAdminService carriers;
 	private final BookingService bookings;
+	private final AuditService audit;
 
-	public AdminController(CarrierAdminService carriers, BookingService bookings) {
+	public AdminController(CarrierAdminService carriers, BookingService bookings, AuditService audit) {
 		this.carriers = carriers;
 		this.bookings = bookings;
+		this.audit = audit;
+	}
+
+	/** 최근 관리자 변경 기록 (최신순 100건) */
+	@GetMapping("/audit-logs")
+	public List<AuditResponse> auditLogs() {
+		return audit.recent(100);
 	}
 
 	// ---------------------------------------------------------------- carriers
@@ -53,43 +65,44 @@ public class AdminController {
 
 	@PostMapping("/carriers")
 	@ResponseStatus(HttpStatus.CREATED)
-	public CarrierResponse createCarrier(@Valid @RequestBody CarrierCreateRequest req) {
-		return carriers.create(req);
+	public CarrierResponse createCarrier(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CarrierCreateRequest req) {
+		return carriers.create(CurrentUser.id(jwt), req);
 	}
 
 	@PatchMapping("/carriers/{id}")
-	public CarrierResponse updateCarrier(@PathVariable Long id, @Valid @RequestBody CarrierUpdateRequest req) {
-		return carriers.update(id, req);
+	public CarrierResponse updateCarrier(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @Valid @RequestBody CarrierUpdateRequest req) {
+		return carriers.update(CurrentUser.id(jwt), id, req);
 	}
 
 	public record CarrierStatusRequest(@NotNull(message = "상태를 선택해주세요.") CarrierStatus status) {}
 
 	@PatchMapping("/carriers/{id}/status")
-	public CarrierResponse changeCarrierStatus(@PathVariable Long id, @Valid @RequestBody CarrierStatusRequest req) {
-		return carriers.changeStatus(id, req.status());
+	public CarrierResponse changeCarrierStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+			@Valid @RequestBody CarrierStatusRequest req) {
+		return carriers.changeStatus(CurrentUser.id(jwt), id, req.status());
 	}
 
 	@PostMapping("/carriers/{id}/inspection")
-	public CarrierResponse recordInspection(@PathVariable Long id, @Valid @RequestBody InspectionRequest req) {
-		return carriers.recordInspection(id, req);
+	public CarrierResponse recordInspection(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @Valid @RequestBody InspectionRequest req) {
+		return carriers.recordInspection(CurrentUser.id(jwt), id, req);
 	}
 
 	@PostMapping("/carriers/{id}/events")
 	@ResponseStatus(HttpStatus.CREATED)
-	public CarrierResponse addEvent(@PathVariable Long id, @Valid @RequestBody EventRequest req) {
-		return carriers.addEvent(id, req);
+	public CarrierResponse addEvent(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @Valid @RequestBody EventRequest req) {
+		return carriers.addEvent(CurrentUser.id(jwt), id, req);
 	}
 
 	@DeleteMapping("/carriers/{id}/events/{eventId}")
-	public CarrierResponse removeEvent(@PathVariable Long id, @PathVariable Long eventId) {
-		return carriers.removeEvent(id, eventId);
+	public CarrierResponse removeEvent(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @PathVariable Long eventId) {
+		return carriers.removeEvent(CurrentUser.id(jwt), id, eventId);
 	}
 
 	/** 사이즈 상품의 가격 · 문구. 조회는 공개 GET /api/carriers. */
 	@PatchMapping("/carrier-models/{size}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void updateModel(@PathVariable String size, @Valid @RequestBody ModelUpdateRequest req) {
-		carriers.updateModel(size, req);
+	public void updateModel(@AuthenticationPrincipal Jwt jwt, @PathVariable String size, @Valid @RequestBody ModelUpdateRequest req) {
+		carriers.updateModel(CurrentUser.id(jwt), size, req);
 	}
 
 	// ---------------------------------------------------------------- bookings
@@ -105,8 +118,8 @@ public class AdminController {
 	}
 
 	@PatchMapping("/bookings/{bookingNumber}/status")
-	public BookingResponse changeBookingStatus(@PathVariable String bookingNumber,
+	public BookingResponse changeBookingStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable String bookingNumber,
 			@Valid @RequestBody StatusChangeRequest req) {
-		return bookings.changeStatus(bookingNumber, req.status());
+		return bookings.changeStatus(CurrentUser.id(jwt), bookingNumber, req.status());
 	}
 }

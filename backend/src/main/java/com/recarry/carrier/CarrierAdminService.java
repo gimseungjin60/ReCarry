@@ -8,6 +8,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.recarry.admin.AuditService;
 import com.recarry.carrier.CarrierDtos.CarrierCreateRequest;
 import com.recarry.carrier.CarrierDtos.CarrierResponse;
 import com.recarry.carrier.CarrierDtos.CarrierUpdateRequest;
@@ -32,9 +33,11 @@ public class CarrierAdminService {
 	private final CarrierService carrierService;
 	private final Clock clock;
 	private final AppProperties props;
+	private final AuditService audit;
 
 	public CarrierAdminService(CarrierRepository carriers, CarrierModelRepository models, CarrierService carrierService,
-			Clock clock, AppProperties props) {
+			Clock clock, AppProperties props, AuditService audit) {
+		this.audit = audit;
 		this.carriers = carriers;
 		this.models = models;
 		this.carrierService = carrierService;
@@ -48,7 +51,7 @@ public class CarrierAdminService {
 		return carriers.findAllWithModel().stream().map(c -> CarrierService.toResponse(c, today)).toList();
 	}
 
-	public CarrierResponse create(CarrierCreateRequest req) {
+	public CarrierResponse create(Long adminId, CarrierCreateRequest req) {
 		CarrierModel model = models.findBySize(req.size())
 			.orElseThrow(() -> ApiException.badRequest("MODEL_NOT_FOUND", "등록된 사이즈가 아닙니다."));
 		if (carriers.existsByCode(req.code())) {
@@ -57,11 +60,15 @@ public class CarrierAdminService {
 		Carrier c = new Carrier(model, req.code(), req.grade(), req.collectedFrom().trim(), blankIfNull(req.repairSummary()));
 		if (Boolean.TRUE.equals(req.featured())) makeFeatured(c);
 		carriers.saveAndFlush(c);
+		audit.record(adminId, "CARRIER_CREATE", c.getCode(), req.size() + "\" · " + req.grade() + " · " + c.getCollectedFrom());
 		return respond(c);
 	}
 
-	public CarrierResponse update(Long id, CarrierUpdateRequest req) {
+	public CarrierResponse update(Long adminId, Long id, CarrierUpdateRequest req) {
 		Carrier c = find(id);
+		audit.record(adminId, "CARRIER_UPDATE", c.getCode(), "등급 " + c.getGrade() + " → " + req.grade()
+			+ (Boolean.TRUE.equals(req.featured()) && !c.isFeatured() ? " · 대표 지정" : "")
+			+ (Boolean.FALSE.equals(req.featured()) && c.isFeatured() ? " · 대표 해제" : ""));
 		c.edit(req.grade(), req.collectedFrom().trim(), blankIfNull(req.repairSummary()));
 		if (Boolean.TRUE.equals(req.featured()) && !c.isFeatured()) makeFeatured(c);
 		else if (Boolean.FALSE.equals(req.featured())) c.setFeatured(false);
@@ -70,18 +77,19 @@ public class CarrierAdminService {
 	}
 
 	/** 운영 상태만 바꿀 수 있다. RESERVED / RENTED 는 예약에서 계산되는 값이다. */
-	public CarrierResponse changeStatus(Long id, CarrierStatus status) {
+	public CarrierResponse changeStatus(Long adminId, Long id, CarrierStatus status) {
 		if (!status.operational()) {
 			throw ApiException.badRequest("INVALID_STATUS", "RESERVED / RENTED 는 예약으로 정해지는 상태입니다.");
 		}
 		Carrier c = find(id);
+		audit.record(adminId, "CARRIER_STATUS", c.getCode(), c.getStatus() + " → " + status);
 		c.changeStatus(status);
 		carriers.flush();
 		return respond(c);
 	}
 
 	/** 검수 결과를 기록한다 (이전 결과를 대체). 모든 항목을 한 번씩 담아야 한다. 운영 상태는 바꾸지 않는다 (관리자가 따로 정한다). */
-	public CarrierResponse recordInspection(Long id, InspectionRequest req) {
+	public CarrierResponse recordInspection(Long adminId, Long id, InspectionRequest req) {
 		if (req.inspectedAt().isAfter(TimeConfig.today(clock, props))) {
 			throw ApiException.badRequest("INVALID_DATE", "검수일은 오늘 이후일 수 없습니다.");
 		}
@@ -93,31 +101,37 @@ public class CarrierAdminService {
 			throw ApiException.badRequest("INVALID_INSPECTION", "모든 검수 항목의 결과를 입력해주세요.");
 		}
 		Carrier c = find(id);
+		long passed = req.checks().stream().filter(CheckRequest::passed).count();
+		audit.record(adminId, "CARRIER_INSPECTION", c.getCode(), req.inspectedAt() + " · 통과 " + passed + "/" + req.checks().size());
 		c.recordInspection(req.inspectedAt(),
 			req.checks().stream().map(r -> new InspectionCheck(r.item(), r.passed(), blankIfNull(r.note()))).toList());
 		carriers.flush();
 		return respond(c);
 	}
 
-	public CarrierResponse addEvent(Long id, EventRequest req) {
+	public CarrierResponse addEvent(Long adminId, Long id, EventRequest req) {
 		Carrier c = find(id);
+		audit.record(adminId, "CARRIER_EVENT_ADD", c.getCode(), req.date() + " " + req.type() + " " + req.title().trim());
 		c.addEvent(req.date(), req.type(), req.title().trim(), blankIfNull(req.detail()));
 		carriers.flush();
 		return respond(c);
 	}
 
-	public CarrierResponse removeEvent(Long id, Long eventId) {
+	public CarrierResponse removeEvent(Long adminId, Long id, Long eventId) {
 		Carrier c = find(id);
 		if (!c.removeEvent(eventId)) {
 			throw ApiException.notFound("EVENT_NOT_FOUND", "기록을 찾을 수 없습니다.");
 		}
+		audit.record(adminId, "CARRIER_EVENT_DELETE", c.getCode(), "기록 #" + eventId);
 		carriers.flush();
 		return respond(c);
 	}
 
-	public void updateModel(String size, ModelUpdateRequest req) {
+	public void updateModel(Long adminId, String size, ModelUpdateRequest req) {
 		CarrierModel m = models.findBySize(size)
 			.orElseThrow(() -> ApiException.notFound("MODEL_NOT_FOUND", "등록된 사이즈가 아닙니다."));
+		audit.record(adminId, "MODEL_UPDATE", size + "\"", "요금 " + m.getPrice() + " → " + req.price()
+			+ " · 1박 추가 " + m.getExtraNightPrice() + " → " + req.extraNightPrice());
 		m.edit(req.name().trim(), req.inch().trim(), req.capacity().trim(), req.usage().trim(), req.dims().trim(),
 			req.weight().trim(), req.price(), req.extraNightPrice(), req.headline().strip(), req.description().strip());
 		models.flush();

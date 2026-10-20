@@ -1,5 +1,6 @@
 package com.recarry.booking;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -35,20 +36,28 @@ public final class BookingDtos {
 
 	public record Customer(Long id, String email, String name) {}
 
-	/** customer 는 관리자 응답에만 채운다. */
+	/**
+	 * customer 는 관리자 응답에만 채운다.
+	 * deposit 은 대여 요금(totalPrice)과 별도 — 결제 예정 금액은 totalPrice + deposit.
+	 * expiresAt: REQUESTED 일 때만, 이 시각까지 확정되지 않으면 자동 취소된다.
+	 */
 	public record BookingResponse(String bookingNumber, BookingStatus status, String size, String carrierName,
 			String carrierCode, String grade, LocalDate startDate, LocalDate endDate, int nights,
 			LocalDate deliveryDate, LocalDate pickupDate, String recipientName, String phone, String address,
-			String addressDetail, String requestMessage, int basePrice, int extraPrice, int totalPrice,
-			boolean cancellable, Instant createdAt, Instant cancelledAt, Customer customer) {
+			String addressDetail, String requestMessage, int basePrice, int extraPrice, int totalPrice, int deposit,
+			boolean cancellable, Instant createdAt, Instant expiresAt, Instant cancelledAt,
+			Booking.CancelReason cancelReason, Customer customer) {
 
-		static BookingResponse of(Booking b, boolean withCustomer) {
+		static BookingResponse of(Booking b, boolean withCustomer, Duration requestTtl) {
 			var c = b.getCarrier();
+			Instant expiresAt = b.getStatus() == BookingStatus.REQUESTED && b.getCreatedAt() != null
+				? b.getCreatedAt().plus(requestTtl) : null;
 			return new BookingResponse(b.getBookingNumber(), b.getStatus(), c.getModel().getSize(),
 				c.getModel().getName(), c.getCode(), c.getGrade(), b.getStartDate(), b.getEndDate(), b.getNights(),
 				b.getStartDate().minusDays(1), b.getEndDate(), b.getRecipientName(), b.getPhone(), b.getAddress(),
 				b.getAddressDetail(), b.getRequestMessage(), b.getBasePrice(), b.getExtraPrice(), b.getTotalPrice(),
-				b.getStatus().userCancellable(), b.getCreatedAt(), b.getCancelledAt(),
+				b.getDeposit(), b.getStatus().userCancellable(), b.getCreatedAt(), expiresAt, b.getCancelledAt(),
+				b.getCancelReason(),
 				withCustomer ? new Customer(b.getUser().getId(), b.getUser().getEmail(), b.getUser().getName()) : null);
 		}
 	}

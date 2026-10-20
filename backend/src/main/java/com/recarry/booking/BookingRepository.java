@@ -1,15 +1,25 @@
 package com.recarry.booking;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
 	boolean existsByBookingNumber(String bookingNumber);
+
+	/** 접수 후 기한(cutoff 이전 접수)이 지나도록 확정되지 않은 예약 요청을 취소한다. 캐리어 점유가 풀린다. */
+	@Modifying
+	@Query(value = """
+		UPDATE bookings SET status = 'CANCELLED', cancel_reason = 'EXPIRED', cancelled_at = :now, updated_at = :now
+		WHERE status = 'REQUESTED' AND created_at < :cutoff
+		""", nativeQuery = true)
+	int expireRequested(@Param("cutoff") Instant cutoff, @Param("now") Instant now);
 
 	@Query("""
 		select b from Booking b join fetch b.carrier c join fetch c.model join fetch b.user

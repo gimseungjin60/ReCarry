@@ -18,11 +18,14 @@ public final class AuthDtos {
 	/** 휴대폰 번호: 숫자·하이픈·공백·+ 만, 9~20자 */
 	public static final String PHONE = "^[0-9+\\- ]{9,20}$";
 
+	/** 비밀번호: 영문과 숫자 포함 (길이 8~72 는 따로 — BCrypt 는 72바이트까지만 쓴다) */
+	public static final String PASSWORD = "^(?=.*[A-Za-z])(?=.*\\d).+$";
+
 	public record SignupRequest(
 		@NotBlank(message = "이메일을 입력해주세요.") @Email(message = "이메일 형식이 아닙니다.") @Size(max = 254) String email,
 		// BCrypt 는 72바이트까지만 쓴다
 		@NotBlank(message = "비밀번호를 입력해주세요.") @Size(min = 8, max = 72, message = "비밀번호는 8~72자입니다.")
-		@Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "비밀번호에 영문과 숫자를 모두 넣어주세요.") String password,
+		@Pattern(regexp = PASSWORD, message = "비밀번호에 영문과 숫자를 모두 넣어주세요.") String password,
 		@NotBlank(message = "이름을 입력해주세요.") @Size(max = 50) String name,
 		@NotBlank(message = "휴대폰 번호를 입력해주세요.") @Pattern(regexp = PHONE, message = "휴대폰 번호 형식이 아닙니다.") String phone,
 		// 필수 동의 — 보내지 않거나 false 면 거절한다

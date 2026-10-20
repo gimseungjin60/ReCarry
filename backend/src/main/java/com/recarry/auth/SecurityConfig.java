@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
@@ -32,6 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.recarry.common.AppProperties;
 import com.recarry.common.ErrorResponse;
+import com.recarry.user.UserRepository;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -104,9 +106,11 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	JwtDecoder jwtDecoder(SecretKey jwtKey) {
+	JwtDecoder jwtDecoder(SecretKey jwtKey, UserRepository users) {
 		NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtKey).macAlgorithm(MacAlgorithm.HS256).build();
-		decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(ISSUER));
+		// 서명 · 만료 · 발급자 다음에 계정 상태(탈퇴 · 비밀번호 변경 · 권한 변경)를 확인한다
+		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(ISSUER),
+			new SessionValidator(users)));
 		return decoder;
 	}
 
