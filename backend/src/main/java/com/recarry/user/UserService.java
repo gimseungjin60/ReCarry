@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.recarry.booking.BookingService;
 import com.recarry.common.ApiException;
+import com.recarry.common.AppProperties;
 
 /** 내 정보 수정 · 비밀번호 변경 · 탈퇴. 비밀번호 확인이 필요한 변경은 여기서 확인한다. */
 @Service
@@ -19,12 +20,26 @@ public class UserService {
 	private final PasswordEncoder encoder;
 	private final BookingService bookings;
 	private final Clock clock;
+	private final AppProperties props;
 
-	public UserService(UserRepository users, PasswordEncoder encoder, BookingService bookings, Clock clock) {
+	public UserService(UserRepository users, PasswordEncoder encoder, BookingService bookings, Clock clock,
+			AppProperties props) {
 		this.users = users;
 		this.encoder = encoder;
 		this.bookings = bookings;
 		this.clock = clock;
+		this.props = props;
+	}
+
+	public UserResponse respond(User u) {
+		return UserResponse.of(u, props.legal());
+	}
+
+	/** 시행 중인 문서 버전에 다시 동의 (이전 버전에 동의했거나 기록이 없는 회원) */
+	public User agreeToCurrent(Long id) {
+		User u = get(id);
+		u.agree(props.legal().termsVersion(), props.legal().privacyVersion(), clock.instant());
+		return u;
 	}
 
 	@Transactional(readOnly = true)

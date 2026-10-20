@@ -89,6 +89,12 @@ public class User {
 
 	public Instant getAgreedAt() { return agreedAt; }
 
+	/** 일반 회원이 지금 시행 중인 문서 버전에 동의하지 않았는가 (관리자는 운영자라 제외) */
+	public boolean needsConsent(com.recarry.common.AppProperties.Legal legal) {
+		return role == Role.USER
+			&& !(legal.termsVersion().equals(termsVersion) && legal.privacyVersion().equals(privacyVersion));
+	}
+
 	public void agree(String termsVersion, String privacyVersion, Instant at) {
 		this.termsVersion = termsVersion;
 		this.privacyVersion = privacyVersion;

@@ -85,6 +85,6 @@ public class AuthService {
 	}
 
 	private Session respond(User user) {
-		return new Session(UserResponse.of(user), tokens.issue(user));
+		return new Session(UserResponse.of(user, props.legal()), tokens.issue(user));
 	}
 }

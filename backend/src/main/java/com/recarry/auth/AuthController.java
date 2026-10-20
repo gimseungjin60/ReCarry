@@ -15,6 +15,7 @@ import com.recarry.auth.AuthDtos.AuthResponse;
 import com.recarry.auth.AuthDtos.LoginRequest;
 import com.recarry.auth.AuthDtos.SessionResponse;
 import com.recarry.auth.AuthDtos.SignupRequest;
+import com.recarry.common.AppProperties;
 import com.recarry.user.UserRepository;
 import com.recarry.user.UserResponse;
 
@@ -34,8 +35,11 @@ public class AuthController {
 	private final SessionCookies cookies;
 	private final JwtDecoder decoder;
 	private final UserRepository users;
+	private final AppProperties props;
 
-	public AuthController(AuthService auth, SessionCookies cookies, JwtDecoder decoder, UserRepository users) {
+	public AuthController(AuthService auth, SessionCookies cookies, JwtDecoder decoder, UserRepository users,
+			AppProperties props) {
+		this.props = props;
 		this.auth = auth;
 		this.cookies = cookies;
 		this.decoder = decoder;
@@ -70,7 +74,7 @@ public class AuthController {
 		if (token == null) return new SessionResponse(null);
 		try {
 			Long id = Long.valueOf(decoder.decode(token).getSubject());
-			UserResponse user = users.findById(id).map(UserResponse::of).orElse(null);
+			UserResponse user = users.findById(id).map(u -> UserResponse.of(u, props.legal())).orElse(null);
 			if (user == null) cookies.clear(res);
 			return new SessionResponse(user);
 		} catch (JwtException | NumberFormatException e) {

@@ -29,8 +29,8 @@ function Field({ label, error, ...input }: { label: string; error?: string } & I
   )
 }
 
-/** 필수 동의 체크 + 내용 펼쳐 보기 */
-function Consent({
+/** 필수 동의 체크 + 내용 펼쳐 보기 (가입 · 재동의가 같이 쓴다) */
+export function Consent({
   checked,
   onChange,
   label,

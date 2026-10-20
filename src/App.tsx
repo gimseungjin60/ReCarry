@@ -12,6 +12,7 @@ import { MyAccount } from '@/pages/MyAccount'
 import { Admin, AdminBooking } from '@/pages/Admin'
 import { AdminCarrier } from '@/pages/AdminCarrier'
 import Legal from '@/pages/Legal'
+import ConsentPage from '@/pages/ConsentPage'
 import RequireAuth from '@/components/RequireAuth'
 import { AuthProvider } from '@/lib/auth'
 
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/admin" element={<RequireAuth admin><Admin /></RequireAuth>} />
             <Route path="/admin/bookings/:bookingNumber" element={<RequireAuth admin><AdminBooking /></RequireAuth>} />
             <Route path="/admin/carriers/:code" element={<RequireAuth admin><AdminCarrier /></RequireAuth>} />
+            <Route path="/consent" element={<ConsentPage />} />
             <Route path="/terms" element={<Legal doc="terms" />} />
             <Route path="/privacy" element={<Legal doc="privacy" />} />
             <Route path="/policy" element={<Legal doc="policy" />} />

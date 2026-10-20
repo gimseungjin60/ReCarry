@@ -2,10 +2,17 @@ package com.recarry.user;
 
 import java.time.Instant;
 
-/** 비밀번호 해시는 절대 응답에 넣지 않는다. */
-public record UserResponse(Long id, String email, String name, String phone, Role role, Instant createdAt) {
+import com.recarry.common.AppProperties;
 
-	public static UserResponse of(User u) {
-		return new UserResponse(u.getId(), u.getEmail(), u.getName(), u.getPhone(), u.getRole(), u.getCreatedAt());
+/**
+ * 비밀번호 해시는 절대 응답에 넣지 않는다.
+ * consentRequired: 지금 시행 중인 약관·개인정보 처리방침 버전에 아직 동의하지 않은 일반 회원 — 예약 전에 동의를 받는다.
+ */
+public record UserResponse(Long id, String email, String name, String phone, Role role, Instant createdAt,
+		boolean consentRequired) {
+
+	public static UserResponse of(User u, AppProperties.Legal legal) {
+		return new UserResponse(u.getId(), u.getEmail(), u.getName(), u.getPhone(), u.getRole(), u.getCreatedAt(),
+			u.needsConsent(legal));
 	}
 }

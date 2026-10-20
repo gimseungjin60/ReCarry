@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +63,10 @@ public class BookingService {
 		int nights = dates.validate(req.startDate(), req.endDate());
 		User user = users.findById(userId)
 			.orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
+		if (user.needsConsent(props.legal())) {
+			// 바뀐 약관·개인정보 처리방침에 동의해야 예약할 수 있다 (POST /api/users/me/consent)
+			throw new ApiException(HttpStatus.FORBIDDEN, "CONSENT_REQUIRED", "변경된 이용약관과 개인정보 처리방침에 동의해주세요.");
+		}
 
 		List<Long> candidates = new ArrayList<>(carriers.findFreeIds(req.size(), req.startDate(), req.endDate()));
 		if (req.carrierCode() != null && !req.carrierCode().isBlank()) {

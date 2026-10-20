@@ -80,6 +80,8 @@ export interface User {
   phone: string
   role: Role
   createdAt: string
+  /** 시행 중인 약관·개인정보 처리방침에 아직 동의하지 않음 — /consent 를 먼저 거친다 */
+  consentRequired: boolean
 }
 
 /** 로그인·가입 응답. 토큰은 본문에 없다 — httpOnly 쿠키로만 온다 */

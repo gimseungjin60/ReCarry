@@ -18,7 +18,9 @@ import com.recarry.auth.TokenService;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -46,16 +48,26 @@ public class UserController {
 		@NotBlank(message = "새 비밀번호를 입력해주세요.") @Size(min = 8, max = 72, message = "비밀번호는 8~72자입니다.")
 		@Pattern(regexp = AuthDtos.PASSWORD, message = "비밀번호에 영문과 숫자를 모두 넣어주세요.") String newPassword) {}
 
+	/** 시행 중인 문서에 다시 동의 — 둘 다 true 여야 한다 (가입 동의와 같은 규칙) */
+	public record ConsentRequest(
+		@NotNull(message = "이용약관에 동의해주세요.") @AssertTrue(message = "이용약관에 동의해주세요.") Boolean agreeTerms,
+		@NotNull(message = "개인정보 수집·이용에 동의해주세요.") @AssertTrue(message = "개인정보 수집·이용에 동의해주세요.") Boolean agreePrivacy) {}
+
 	public record WithdrawRequest(@NotBlank(message = "비밀번호를 입력해주세요.") @Size(max = 72) String password) {}
 
 	@GetMapping("/me")
 	public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
-		return UserResponse.of(users.get(CurrentUser.id(jwt)));
+		return users.respond(users.get(CurrentUser.id(jwt)));
+	}
+
+	@PostMapping("/me/consent")
+	public UserResponse consent(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ConsentRequest req) {
+		return users.respond(users.agreeToCurrent(CurrentUser.id(jwt)));
 	}
 
 	@PatchMapping("/me")
 	public UserResponse update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ProfileRequest req) {
-		return UserResponse.of(users.updateProfile(CurrentUser.id(jwt), req.name(), req.phone()));
+		return users.respond(users.updateProfile(CurrentUser.id(jwt), req.name(), req.phone()));
 	}
 
 	/** 다른 기기의 로그인은 끊고, 이 브라우저에는 새 세션 쿠키를 준다. */

@@ -690,6 +690,29 @@ class ApiIntegrationTest {
 	}
 
 	@Test
+	void members_on_an_old_document_version_must_consent_again_before_booking() throws Exception {
+		String email = "reconsent-" + UUID.randomUUID() + "@test.recarry";
+		String token = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "재동의", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).session();
+		assertThat(call("GET", "/api/users/me", token, null).body().get("consentRequired").asBoolean()).isFalse();
+
+		// 이전 문서(draft)에 동의한 회원
+		jdbc.update("UPDATE users SET terms_version = 'draft', privacy_version = 'draft' WHERE email = ?", email);
+		assertThat(call("GET", "/api/auth/session", token, null).body().get("user").get("consentRequired").asBoolean()).isTrue();
+		Res blocked = call("POST", "/api/bookings", token, booking("24", null, window(3), null));
+		assertThat(blocked.status()).isEqualTo(403);
+		assertThat(blocked.code()).isEqualTo("CONSENT_REQUIRED");
+
+		assertThat(call("POST", "/api/users/me/consent", token, java.util.Map.of("agreeTerms", true, "agreePrivacy", false)).status())
+			.isEqualTo(400);
+		Res agreed = call("POST", "/api/users/me/consent", token, java.util.Map.of("agreeTerms", true, "agreePrivacy", true));
+		assertThat(agreed.status()).isEqualTo(200);
+		assertThat(agreed.body().get("consentRequired").asBoolean()).isFalse();
+		assertThat(jdbc.queryForObject("SELECT terms_version FROM users WHERE email = ?", String.class, email)).isEqualTo("2026-10-20");
+		assertThat(call("POST", "/api/bookings", token, booking("24", null, window(3), null)).status()).isEqualTo(201);
+	}
+
+	@Test
 	void role_change_takes_effect_on_existing_tokens() throws Exception {
 		String email = "role-" + UUID.randomUUID() + "@test.recarry";
 		String token = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",

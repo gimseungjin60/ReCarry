@@ -11,7 +11,12 @@ export default function RequireAuth({ children, admin }: { children: ReactNode; 
   const location = useLocation()
 
   if (loading) return <div className="wrap pd-loading" aria-busy="true" />
-  if (!user) return <Navigate to="/login" replace state={{ from: { pathname: location.pathname, state: location.state } }} />
+  const from = { pathname: location.pathname, state: location.state }
+  if (!user) return <Navigate to="/login" replace state={{ from }} />
+  // 약관이 바뀌었으면 동의부터 (backend 도 동의 전 예약을 거절한다). 동의 대신 탈퇴할 수 있게 내 계정은 연다
+  if (user.consentRequired && location.pathname !== '/mypage/account') {
+    return <Navigate to="/consent" replace state={{ from }} />
+  }
   if (admin && user.role !== 'ADMIN') {
     return (
       <div className="wrap pd-loading">
