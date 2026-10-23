@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import type { RefObject } from 'react'
 
 /* 브랜드 motion 두 가지. 라이브러리 없이 IntersectionObserver / rAF 만 쓴다.
    reduced-motion 이면 아무 것도 하지 않고, CSS 도 최종 상태를 기본값으로 둔다. */
@@ -34,35 +33,4 @@ export function useReveal(key?: unknown) {
       root.classList.remove('reveal-on')
     }
   }, [key])
-}
-
-/**
- * Scroll-expansion hero (docs/components/scroll-expansion-hero.md 의 Vite 버전).
- * 스크롤을 붙잡지 않는다 — hero 높이의 35% 를 내리는 동안 --expand 가 0 → 1 로 가고,
- * CSS 가 그 값으로 가장자리 여백·radius 를 줄여 사진이 full-bleed 로 펼쳐진다.
- */
-export function useHeroExpansion(ref: RefObject<HTMLElement | null>) {
-  useEffect(() => {
-    const el = ref.current
-    if (!el || reducedMotion()) return
-
-    let frame = 0
-    const update = () => {
-      frame = 0
-      const p = Math.min(1, Math.max(0, window.scrollY / (el.offsetHeight * 0.35)))
-      el.style.setProperty('--expand', p.toFixed(3))
-    }
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update)
-    }
-    update()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
-    return () => {
-      cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
-      el.style.removeProperty('--expand')
-    }
-  }, [ref])
 }

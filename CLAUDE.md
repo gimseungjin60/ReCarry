@@ -212,7 +212,7 @@ RECARRY는 다음 분위기를 가진다.
 - editorial layout
 - restrained typography
 - premium travel photography
-- dark / forest / sand tones
+- 브랜드 색 Boarding Blue (#2340E0) + night navy + stamp orange — docs/DESIGN.md §Brand color (2026-10 확정)
 - minimal shadow
 - minimal decoration
 

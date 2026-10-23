@@ -1,31 +1,37 @@
-/* Home 섹션 카피. prototype/recarry-prototype-v2.html 문구 그대로. */
+/* Home 섹션 카피. 정책 수치(보증금 30% · 요청 만료 3일)는 docs/POLICY.md · data/legal.ts 와 같아야 한다. */
 
-import type { CarrierBagProps } from '@/components/CarrierBag'
+/** 이용 방법 — 고객이 겪는 4단계 */
+export const HOW_STEPS = [
+  { t: '사이즈 · 날짜 선택', s: '20 · 24 · 28인치 중 고르고 여행 날짜를 정하면 예약 요청이 접수됩니다. 3일 안에 확정 안내를 드립니다.' },
+  { t: '출발 전날 도착', s: '세척과 검수를 마친 캐리어가 출발 전날까지 문 앞으로 갑니다. Carrier ID 와 검수 기록이 함께 옵니다.' },
+  { t: '여행', s: '평소처럼 쓰세요. 바퀴 자국이나 미세한 긁힘 같은 사용 흔적에는 비용을 받지 않습니다.' },
+  { t: '반납일 문 앞 회수', s: '도착하는 날 같은 주소에서 회수합니다. 세척과 재검수는 RECARRY 가 합니다.' },
+]
 
-/** Why RECARRY — 캐리어 한 대의 네 순간 */
-export const WHY_FRAMES: { title: string; desc: string; bg: string; bag: CarrierBagProps }[] = [
+/** 자주 묻는 질문 — 대여 정책(/policy)의 요약. 바뀌면 legal.ts 와 같이 고친다 */
+export const FAQ = [
   {
-    title: '버려지기 직전',
-    desc: '작은 고장으로 폐기될 캐리어',
-    bg: '#d9d5cd',
-    bag: { worn: true, handle: 'down', style: { transform: 'rotate(-8deg) translateY(4%)' } },
+    q: '요금은 어떻게 계산되나요?',
+    a: '사이즈별 기본 요금이 2박 3일을 포함하고, 3박째부터 1박당 추가 요금이 붙습니다. 날짜를 고르면 예약 전에 최종 금액을 보여드립니다. (현재 가격은 sample 값입니다)',
   },
-  { title: '입고', desc: '쓰이지 않던 중고 캐리어를 매입합니다', bg: 'var(--stone)', bag: { worn: true, handle: 'down', tag: true } },
-  { title: '복원', desc: '세척·수리·검수를 거칩니다', bg: 'var(--canvas)', bag: { handle: 'down' } },
-  { title: '다시 여행', desc: '새로운 사람의 여행을 시작합니다', bg: 'var(--sand)', bag: { tag: true, tagColor: '#141413' } },
+  {
+    q: '보증금은 얼마이고 언제 돌려받나요?',
+    a: '대여 요금의 30%(100원 미만 버림)입니다. 반납 검수 후 영업일 3일 안에 결제한 수단으로 돌려드리며, 파손·연체 비용이 있으면 먼저 공제합니다.',
+  },
+  {
+    q: '취소하면 환불되나요?',
+    a: '결제 전 예약 요청은 언제든 무료로 취소할 수 있습니다. 결제 후에는 배송 예정일 3일 전까지 전액, 그 이후에는 대여 정책의 단계별 기준을 따릅니다.',
+  },
+  {
+    q: '예약 요청 후 확정은 언제 되나요?',
+    a: '접수 후 3일 안에 확정 안내를 드립니다. 그 안에 확정되지 않은 요청은 자동으로 취소되고 비용은 발생하지 않습니다.',
+  },
+  {
+    q: '쓰다가 망가지면요?',
+    a: '정상 사용 흔적은 비용이 없습니다. 바퀴·손잡이·지퍼 같은 기능 파손은 수리 실비를 보증금에서 공제합니다. 배송·회수 중 생긴 파손은 청구하지 않습니다.',
+  },
+  {
+    q: '중고 캐리어인데 깨끗한가요?',
+    a: '모든 캐리어는 매입 후 내부 원단 세척과 살균·탈취, 부품 수리를 거치고 세척 · 외관 · 바퀴 · 손잡이 · 지퍼 5개 항목을 검수합니다. 검수 결과는 Carrier ID 별로 공개합니다.',
+  },
 ]
-
-/** Why Rent — 렌탈을 선택하는 네 가지 이유 */
-export const RENT_REASONS = [
-  { title: '공간 절약', desc: '1년에 몇 번 쓰는 캐리어가 옷장을 차지하지 않습니다.' },
-  { title: '비용 절약', desc: '새 캐리어 대신, 여행하는 기간만큼만 지불합니다.' },
-  { title: '새로운 소비 방식', desc: '소유하지 않고, 필요한 만큼 이용합니다.' },
-  { title: '자원순환', desc: '캐리어 한 대가 여러 사람의 여행을 합니다.' },
-]
-
-/** 브랜드 사진 — 디자인 검증용, 라이선스 미확인 (public/images/README.md) */
-export const HOME_IMAGES = {
-  hero: { src: '/images/lounge.jpg', alt: '공항 라운지 창밖으로 비행기를 바라보는 여행자' },
-  story: { src: '/images/hand.jpg', alt: '캐리어 손잡이를 잡고 하늘 아래로 걸어가는 여행자의 손' },
-  rent: { src: '/images/traveler.jpg', alt: '공항 창가에서 오렌지색 캐리어와 함께 이륙하는 비행기를 바라보는 여행자' },
-}

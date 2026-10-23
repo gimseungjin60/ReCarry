@@ -50,7 +50,7 @@ export default function CarrierBag({
   handle = 'up',
   handleExtend = 64,
   tag = false,
-  tagColor = '#c4592b',
+  tagColor = '#ff6a3d', // stamp (tokens.css --stamp)
   worn = false,
   viewBox,
   className = 'bag',

@@ -1,46 +1,53 @@
 /* ============================================================
    RECARRY design tokens
-   2026-10: Apple 웹 디자인 원칙(docs/DESIGN.md §Apple 원칙)을 RECARRY 톤으로 옮긴 값.
+   2026-10: Apple 웹 디자인 원칙(docs/DESIGN.md §Apple 원칙) + 브랜드 색 Boarding Blue (§Brand color).
    (원본 출처: prototype/recarry-prototype-v2.html (:root) — 이름은 그대로 유지)
    DESIGN.md의 7색은 여기 ink / forest / sand / canvas / stone /
    night / signal 과 1:1로 대응한다. 나머지는 파생 토큰.
    값을 바꿀 때는 반드시 이 파일에서만 바꾼다.
    ============================================================ */
 :root{
-  /* surface — 흰 캔버스와 parchment(옅은 회색)를 번갈아 써서 구획한다. 테두리보다 면의 변화로 나눈다 */
+  /* ---- Boarding Blue (2026-10 브랜드 색) — 탑승권의 파랑 + 검수 도장의 주황 ----
+     brand: 히어로 · 주요 버튼 · 마지막 CTA. stamp: 캐리어 태그 · 검수 통과 표시에만 */
+  --brand:#2340e0;
+  --brand-ink:#1a30b8;   /* 누름 · 밝은 면 위 링크 */
+  --stamp:#ff6a3d;
+  --mist:#c9d3f5;        /* 브랜드 면 위 보조 글자 · 카드 면 */
+
+  /* surface — 흰 캔버스와 ticket white 를 번갈아 써서 구획한다. 테두리보다 면의 변화로 나눈다 */
   --paper:#ffffff;
-  --canvas:#f5f5f7;      /* parchment — 교차 섹션 · 푸터 · 정보 패널 */
-  --pearl:#fafafc;       /* parchment 위의 보조 버튼 면 */
-  --stone:#ececee;       /* 제품 프레임 (중립) */
-  --sand:#ede6da;        /* 제품 프레임 (따뜻한 RECARRY 톤) */
-  --sand-deep:#d9ccb8;
+  --canvas:#f6f7fb;      /* ticket white — 교차 섹션 · 푸터 · 정보 패널 */
+  --pearl:#fbfbfe;
+  --stone:#e9edf8;       /* 제품 프레임 (차가운 톤) */
+  --sand:#dfe5f7;        /* 제품 프레임 (mist 톤) */
+  --sand-deep:#c9d3f5;
 
-  /* ink — 순흑 대신 near-black. 회색 단계는 둘만 */
-  --ink:#1d1d1f;
-  --charcoal:#333336;
-  --ink-muted:#6e6e73;
-  --hairline:#e0e0e3;
-  --line-strong:#a1a1a6;
-  --sand-ink:#5a5142;
+  /* ink — 네이비 기운의 near-black */
+  --ink:#0e1530;
+  --charcoal:#2b3247;
+  --ink-muted:#646b80;
+  --hairline:#e2e5ee;
+  --line-strong:#a3a9ba;
+  --sand-ink:#3a4466;
 
-  /* forest — RECARRY 브랜드 블록 (Circular Journey 등). 초록은 이 블록과 상태 점에만 쓴다 */
-  --forest:#1f3a2e;
-  --forest-line:#3a5649;
-  --on-forest:#f2f0ea;
-  --on-forest-muted:#b5c1b8;
+  /* forest — 이전 이름 호환. 이제 브랜드 블루 블록이다 (초록은 쓰지 않는다) */
+  --forest:var(--brand);
+  --forest-line:#4a62ea;
+  --on-forest:#ffffff;
+  --on-forest-muted:var(--mist);
 
-  /* night — 어두운 타일 */
-  --night:#1d1d1f;
-  --night-raised:#272729;
-  --night-line:#3a3a3c;
-  --on-night:#f5f5f7;
-  --on-night-muted:#a1a1a6;
+  /* night — 어두운 타일 (Night navy) */
+  --night:#0e1530;
+  --night-raised:#18213f;
+  --night-line:#2b3557;
+  --on-night:#f6f7fb;
+  --on-night-muted:#9aa3c2;
 
-  /* accent — 행동(버튼 · 링크)은 ink 하나로. 강조색을 따로 두지 않는다 (모노크롬) */
-  --action:var(--ink);
-  --signal:#c4592b;      /* 캐리어 태그 일러스트 · 오류 */
-  --signal-ink:#b0461b;
-  --focus:#1d1d1f;
+  /* accent — 행동(주요 버튼)은 brand 하나. 오류는 signal */
+  --action:var(--brand);
+  --signal:var(--stamp);
+  --signal-ink:#c2410c;
+  --focus:var(--brand);
 
   /* type — Pretendard(한글) 우선, 라틴은 Pretendard 의 Inter 계열 글리프. Apple 의 SF Pro 대체 */
   --font-display:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;

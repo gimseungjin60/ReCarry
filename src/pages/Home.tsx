@@ -1,17 +1,17 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import Hero from '@/sections/home/Hero'
-import WhyRecarry from '@/sections/home/WhyRecarry'
-import CircularProcess from '@/sections/home/CircularProcess'
 import CollectionPreview from '@/sections/home/CollectionPreview'
+import HowItWorks from '@/sections/home/HowItWorks'
 import CarrierStory from '@/sections/home/CarrierStory'
-import WhyRent from '@/sections/home/WhyRent'
+import Faq from '@/sections/home/Faq'
 import Cta from '@/sections/home/Cta'
 import '@/sections/home.css'
 import { useReveal } from '@/lib/motion'
 import { useCatalog } from '@/lib/catalog'
 
-/* PRD §4 Home — 7개 섹션. 순서와 id(#why #how #collection #story #rent #cta)를 고정한다. */
+/* Home — 짧게 5개 블록 (2026-10 개편, docs/DESIGN.md §Home).
+   첫 화면에서 무엇을 · 얼마에 · 어떻게 받는지 답하고 바로 예약으로. id(#top #collection #how #story #faq)는 nav 앵커다. */
 
 export default function Home() {
   const { state } = useLocation()
@@ -30,11 +30,10 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <WhyRecarry />
-      <CircularProcess />
       <CollectionPreview />
+      <HowItWorks />
       <CarrierStory />
-      <WhyRent />
+      <Faq />
       <Cta />
     </>
   )

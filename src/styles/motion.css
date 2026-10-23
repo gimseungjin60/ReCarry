@@ -6,17 +6,13 @@
 
 @media (prefers-reduced-motion: no-preference){
 
-  /* ---------- hero: 첫 진입 ---------- */
-  .hero2 .ph{animation:hero-settle 1.8s var(--ease) both}
-  .hero2-top,.hero2-loop{animation:fade-in 1s .5s var(--ease) both}
-  .hero2-copy>*{animation:rise 1s var(--ease) both}
-  .hero2-copy>:nth-child(1){animation-delay:.15s}
-  .hero2-copy>:nth-child(2){animation-delay:.3s}
-  .hero2-copy>:nth-child(3){animation-delay:.45s}
-
-  /* ---------- hero: scroll expansion (--expand 는 useHeroExpansion 이 0→1 로 올린다) ---------- */
-  .hero2{--hero-gap:20px;--g:calc((1 - var(--expand,1)) * var(--hero-gap));
-    clip-path:inset(0 var(--g) var(--g) var(--g) round calc((1 - var(--expand,1)) * 12px))}
+  /* ---------- hero: 첫 진입 — 글이 차례로 올라오고, 캐리어가 천천히 내려앉는다 ---------- */
+  .hero3-copy>*{animation:rise 1s var(--ease) both}
+  .hero3-copy>:nth-child(2){animation-delay:.12s}
+  .hero3-copy>:nth-child(3){animation-delay:.24s}
+  .hero3-copy>:nth-child(4){animation-delay:.36s}
+  .hero3-copy>:nth-child(5){animation-delay:.48s}
+  .hero3-art svg{animation:hero-settle 1.6s .2s var(--ease) both}
 
   /* ---------- section reveal ---------- */
   .reveal-on [data-reveal]:not(.is-in){opacity:0;transform:translateY(28px)}
@@ -37,23 +33,13 @@
   .reveal-on [data-reveal="image"] .ph{transition:clip-path 1.2s var(--ease),transform 1.6s var(--ease)}
   .reveal-on [data-reveal="image"]:not(.is-in) .ph{clip-path:inset(100% 0 0 0);transform:scale(1.06)}
 
-  /* ---------- carrier interaction ---------- */
-  @media (hover:hover){
-    .why-frames .frame svg.bag{transition:transform .8s var(--ease)}
-    .why-frames figure:hover .frame svg.bag{transform:translateY(-8px)}
-  }
-
   /* ---------- micro ---------- */
-  .btn:active:not([disabled]){transform:scale(.98)}
+  .btn:active:not([disabled]){transform:scale(.96)}
 }
 
-@keyframes hero-settle{from{transform:scale(1.06)}to{transform:none}}
+@keyframes hero-settle{from{transform:translateY(-24px) rotate(-2deg);opacity:0}to{transform:none;opacity:1}}
 @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
-
-@container app (max-width:720px){
-  .hero2{--hero-gap:10px}
-}
 
 /* 움직임을 줄이도록 설정한 사용자: 기존 transition(카드 hover, ring 등)도 즉시 끝낸다 */
 @media (prefers-reduced-motion: reduce){

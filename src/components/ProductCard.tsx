@@ -35,15 +35,15 @@ export default function ProductCard({ carrier }: { carrier: Carrier }) {
           <span>{carrier.usage}</span>
         </div>
 
+        {/* 실제 검수 기록이 있을 때만 — 모든 캐리어에 같은 문구를 붙이지 않는다 */}
         <div className="pcard-checks">
-          <span>
-            <i className="dot" />
-            Professional inspection
-          </span>
-          <span>
-            <i className="dot" />
-            Cleaning complete
-          </span>
+          <span>1박 추가 {won(carrier.extra)}</span>
+          {carrier.inspection.length > 0 && (
+            <span>
+              <i className="dot" />
+              검수 {carrier.inspection.filter((c) => c.passed).length}/{carrier.inspection.length} 통과
+            </span>
+          )}
         </div>
 
         <span className="link-arrow">

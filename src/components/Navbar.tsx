@@ -42,8 +42,8 @@ export default function Navbar() {
             <Link to={user ? '/mypage' : '/login'} className="nav-account">
               {user ? '마이페이지' : '로그인'}
             </Link>
-            <Button small onClick={() => goAnchor('collection')}>
-              캐리어 둘러보기
+            <Button small onClick={() => goAnchor('top')}>
+              예약하기
             </Button>
             <button
               ref={menuBtn}

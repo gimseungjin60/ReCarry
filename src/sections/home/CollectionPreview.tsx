@@ -11,10 +11,11 @@ export default function CollectionPreview() {
       <div className="wrap">
         <div className="grid col-head" data-reveal>
           <div className="l">
-            <SectionHeader index="03" eyebrow="Collection" title={['세 가지 사이즈,', '하나의 검수 기준.']} />
+            <SectionHeader index="01" eyebrow="Sizes" title={['여행에 맞는', '사이즈를 고르세요.']} />
           </div>
           <p className="r muted">
-            모든 캐리어는 {INSPECTION_CHECKS.length}개 항목 검수를 마친 뒤에만 컬렉션에 올라옵니다. 가격은 2박 3일 기준입니다.
+            가격은 2박 3일 기준이며 3박째부터 1박 추가 요금이 붙습니다. 보증금은 대여 요금의 30%로 반납 검수 후 돌려드립니다. 모든
+            캐리어는 {INSPECTION_CHECKS.length}개 항목을 검수합니다.
           </p>
         </div>
 
