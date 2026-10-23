@@ -57,25 +57,28 @@ function HeroBooking({ list, size, onSize }: BookingProps) {
           ))}
         </div>
       </div>
-      <button type="button" className="hbook-field hbook-date" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span className="hbook-label">여행 날짜</span>
-        <span className="v">{range.start && range.end ? `${fmt(range.start)} — ${fmt(range.end)}` : '출발일 · 도착일 선택'}</span>
-        <span className="hint">{n > 0 ? stayLabel(n) : '출발 전날 문 앞 도착'}</span>
-      </button>
+      {/* 달력은 날짜 칸 바로 아래에 붙는다 */}
+      <div className="hbook-datewrap">
+        <button type="button" className="hbook-field hbook-date" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <span className="hbook-label">여행 날짜</span>
+          <span className="v">{range.start && range.end ? `${fmt(range.start)} — ${fmt(range.end)}` : '출발일 · 도착일 선택'}</span>
+          <span className="hint">{n > 0 ? stayLabel(n) : '출발 전날 문 앞 도착'}</span>
+        </button>
+        {open && (
+          <div className="hbook-cal">
+            <Calendar
+              value={range}
+              onChange={(r) => {
+                setRange(r)
+                if (r.start && r.end) setOpen(false)
+              }}
+            />
+          </div>
+        )}
+      </div>
       <Button arrow onClick={book} className="hbook-go">
         {carrier && n > 0 ? won(priceFor(carrier, n)) : '예약하기'}
       </Button>
-      {open && (
-        <div className="hbook-cal">
-          <Calendar
-            value={range}
-            onChange={(r) => {
-              setRange(r)
-              if (r.start && r.end) setOpen(false)
-            }}
-          />
-        </div>
-      )}
     </div>
   )
 }
