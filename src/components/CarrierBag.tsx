@@ -34,6 +34,8 @@ export interface CarrierBagProps {
   tagColor?: string
   /** 입고 당시(수리 전) 모습 */
   worn?: boolean
+  /** 바닥 그림자 — 캐리어가 떠 있는 연출에서는 끄고 바깥에서 그린다 */
+  ground?: boolean
   /** 문자열이면 그대로, 함수면 좌표를 받아 크롭 viewBox 를 만든다 */
   viewBox?: string | ((g: BagGeometry) => string)
   className?: string
@@ -52,6 +54,7 @@ export default function CarrierBag({
   tag = false,
   tagColor = '#ff6a3d', // stamp (tokens.css --stamp)
   worn = false,
+  ground = true,
   viewBox,
   className = 'bag',
   style,
@@ -126,8 +129,8 @@ export default function CarrierBag({
       </defs>
 
       {/* 바닥 그림자 */}
-      <ellipse cx={cx} cy={bot + 32} rx={bw * 0.74} ry={9} fill="#000" opacity=".07" />
-      <ellipse cx={cx} cy={bot + 31} rx={bw * 0.56} ry={4.5} fill="#000" opacity=".17" />
+      {ground && <ellipse cx={cx} cy={bot + 32} rx={bw * 0.74} ry={9} fill="#000" opacity=".07" />}
+      {ground && <ellipse cx={cx} cy={bot + 31} rx={bw * 0.56} ry={4.5} fill="#000" opacity=".17" />}
 
       <g filter={worn ? 'url(#' + uid + 'f)' : undefined}>
         {ext > 0 && (

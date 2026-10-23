@@ -13,25 +13,34 @@
 .hero3 .lead{color:var(--mist);margin-top:22px;max-width:480px}
 .hero3-chips{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
 .hero3-chips li{font-size:13px;font-weight:600;padding:6px 12px;border-radius:var(--radius-pill);background:rgba(255,255,255,.14);color:#fff}
-.hero3-art{grid-column:8/13;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
-.hero3-art svg{height:min(440px,52vh);width:auto;filter:drop-shadow(0 28px 36px rgba(6,12,60,.35))}
-.hero3-id{color:var(--mist);background:rgba(14,21,48,.28);padding:6px 12px;border-radius:var(--radius-pill)}
+.hero3-art{grid-column:8/13;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px}
+/* 무대 높이는 고정, 캐리어 높이는 사이즈 비율(--h)로 — 사이즈를 바꾸면 부드럽게 커지고 작아진다 */
+.hero3-stage{height:min(460px,54vh);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;position:relative}
+.hero3-float{display:flex;align-items:flex-end;justify-content:center;height:calc(100% - 28px)}
+.hero3-float svg{height:calc(var(--h,1) * 100%);width:auto;transition:height .7s var(--ease)}
+.hero3-ground{width:calc(var(--h,1) * 170px);height:20px;margin-top:6px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(6,12,60,.42),rgba(6,12,60,0));transition:width .7s var(--ease)}
+.hero3-id{color:#fff;background:rgba(14,21,48,.3);padding:7px 14px;border-radius:var(--radius-pill);font-size:13px}
 
-/* 예약 바 — 흰 카드 하나에 사이즈 · 날짜 · 버튼 */
-.hbook{position:relative;margin-top:36px;background:#fff;color:var(--ink);border-radius:var(--radius-lg);padding:8px;
-  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:stretch;max-width:640px;--focus:var(--brand)}
-.hbook-sizes{display:flex;gap:4px;background:var(--canvas);border-radius:var(--radius-md);padding:4px}
-.hbook-sizes button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;padding:6px 10px;border-radius:9px;transition:background .2s,color .2s}
-.hbook-sizes b{font-size:16px;font-weight:600;line-height:1.2}
-.hbook-sizes span{font-size:11px;color:var(--ink-muted);line-height:1.3;white-space:nowrap}
+/* 예약 바 — 흰 카드 하나에 [사이즈 | 여행 날짜 | 버튼]. 크게, 읽기 쉽게 */
+.hbook{position:relative;margin-top:40px;background:#fff;color:var(--ink);border-radius:22px;padding:10px;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:stretch;max-width:780px;--focus:var(--brand)}
+.hbook-field{display:flex;flex-direction:column;justify-content:center;gap:8px;min-width:0}
+.hbook-label{font-size:13px;font-weight:600;color:var(--ink-muted);padding-left:4px}
+.hbook-sizes{display:flex;gap:6px;background:var(--canvas);border-radius:16px;padding:6px}
+.hbook-sizes button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:100px;padding:12px 14px;border-radius:12px;transition:background .2s,color .2s,transform .15s var(--ease)}
+.hbook-sizes button:hover{background:#fff}
+.hbook-sizes button:active{transform:scale(.97)}
+.hbook-sizes b{font-size:22px;font-weight:700;line-height:1.15;letter-spacing:-.02em}
+.hbook-sizes span{font-size:13px;color:var(--ink-muted);line-height:1.3;white-space:nowrap}
 .hbook-sizes [aria-checked="true"]{background:var(--ink);color:#fff}
-.hbook-sizes [aria-checked="true"] span{color:var(--on-night-muted)}
-.hbook-date{text-align:left;padding:8px 14px;border-radius:var(--radius-md);display:flex;flex-direction:column;justify-content:center;min-width:0;transition:background .2s}
+.hbook-sizes [aria-checked="true"] span{color:var(--mist)}
+.hbook-date{text-align:left;padding:10px 18px;border-radius:16px;transition:background .2s}
 .hbook-date:hover{background:var(--canvas)}
-.hbook-date .label{color:var(--ink-muted);font-size:11px}
-.hbook-date .v{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hbook-go{height:auto;min-height:52px;border-radius:var(--radius-md)}
-.hbook-cal{position:absolute;top:calc(100% + 8px);left:0;width:min(400px,100%);z-index:10;background:#fff;border-radius:var(--radius-lg);padding:18px;border:1px solid var(--hairline)}
+.hbook-date .v{font-size:18px;font-weight:700;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbook-date .hint{font-size:13px;color:var(--ink-muted);margin-top:-4px}
+.hbook-go{height:auto;min-height:72px;padding:0 30px;border-radius:16px;font-size:18px}
+.hbook-cal{position:absolute;top:calc(100% + 10px);left:0;width:min(420px,100%);z-index:10;background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--hairline)}
 
 /* ---------- collection ---------- */
 .col-head{align-items:end}
@@ -73,9 +82,17 @@
 .cta-art{grid-column:9/13;display:flex;justify-content:flex-end;align-self:end;margin-bottom:calc(-1 * var(--space-11))}
 .cta-art svg{height:480px;width:auto}
 
+/* 카피 칸이 좁아지면 예약 바를 두 줄로: [사이즈] / [날짜 | 버튼] */
+@container app (max-width:1240px){
+  .hbook{grid-template-columns:minmax(0,1fr) auto}
+  .hbook>.hbook-field:first-child{grid-column:1/-1}
+  .hbook-sizes button{flex:1}
+  .hbook-go{min-height:64px}
+}
 @container app (max-width:1080px){
   .hero3-copy{grid-column:1/9}
   .hero3-art{grid-column:9/13}
+
   .how-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
   .faq-l{grid-column:1/-1}
   .faq-r{grid-column:1/-1;margin-top:40px}
@@ -83,11 +100,14 @@
 @container app (max-width:720px){
   .hero3-in{min-height:0;padding-top:40px;padding-bottom:48px}
   .hero3 .d-xl{font-size:38px}
-  .hero3-art{order:-1;margin-bottom:8px}
-  .hero3-art svg{height:220px}
-  .hbook{grid-template-columns:1fr;margin-top:28px}
-  .hbook-sizes button{flex:1}
-  .hbook-go{min-height:52px}
+  .hero3-art{order:-1;margin-bottom:8px;gap:16px}
+  .hero3-stage{height:240px}
+  .hbook{grid-template-columns:1fr;margin-top:28px;padding:8px}
+  .hbook-field{padding:6px 6px 0}
+  .hbook-sizes button{flex:1;min-width:0;padding:12px 6px}
+  .hbook-sizes b{font-size:20px}
+  .hbook-date{padding:12px 14px}
+  .hbook-go{min-height:60px}
   .hbook-cal{width:100%}
 
   .col-head .r{margin-top:20px}

@@ -12,7 +12,10 @@
   .hero3-copy>:nth-child(3){animation-delay:.24s}
   .hero3-copy>:nth-child(4){animation-delay:.36s}
   .hero3-copy>:nth-child(5){animation-delay:.48s}
-  .hero3-art svg{animation:hero-settle 1.6s .2s var(--ease) both}
+  /* 캐리어는 떨어지지 않는다 — 부드럽게 나타난 뒤 제자리에서 천천히 떠 있고, 그림자가 숨 쉬듯 따라간다 */
+  .hero3-stage{animation:hero-in 1.2s .25s var(--ease) both}
+  .hero3-float{animation:hero-float 6s 1.4s ease-in-out infinite}
+  .hero3-ground{animation:hero-ground 6s 1.4s ease-in-out infinite}
 
   /* ---------- section reveal ---------- */
   .reveal-on [data-reveal]:not(.is-in){opacity:0;transform:translateY(28px)}
@@ -37,7 +40,9 @@
   .btn:active:not([disabled]){transform:scale(.96)}
 }
 
-@keyframes hero-settle{from{transform:translateY(-24px) rotate(-2deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes hero-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes hero-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes hero-ground{0%,100%{transform:scaleX(1);opacity:1}50%{transform:scaleX(.86);opacity:.7}}
 @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
 
