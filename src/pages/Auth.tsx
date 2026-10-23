@@ -67,6 +67,8 @@ export function Consent({
 export function Login() {
   const { user, login } = useAuth()
   const location = useLocation()
+  // 비밀번호 재설정 뒤에 넘어온 안내
+  const notice = (location.state as { notice?: string } | null)?.notice
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
@@ -93,6 +95,11 @@ export function Login() {
       <h1 className="d-m" style={{ marginTop: 12 }}>
         로그인
       </h1>
+      {notice && (
+        <p className="note" role="status" style={{ marginTop: 32 }}>
+          {notice}
+        </p>
+      )}
       <form onSubmit={submit} noValidate>
         <Field label="이메일" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <Field
@@ -114,6 +121,10 @@ export function Login() {
         처음이신가요?{' '}
         <Link className="link" to="/signup" state={location.state}>
           회원가입
+        </Link>
+        {' · '}
+        <Link className="link" to="/forgot">
+          비밀번호를 잊으셨나요?
         </Link>
       </p>
     </div>

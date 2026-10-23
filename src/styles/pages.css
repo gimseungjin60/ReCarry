@@ -120,8 +120,8 @@
 /* ---------- 정책 문서 ---------- */
 .legal-pg{max-width:760px;padding-top:var(--space-9);padding-bottom:var(--space-10)}
 .legal-nav{display:flex;gap:20px;flex-wrap:wrap;margin-top:32px;padding-bottom:16px;border-bottom:1px solid var(--ink);font-size:14px}
-.legal-nav a{color:var(--ink-muted)}
-.legal-nav a[aria-current="page"]{color:var(--ink);text-decoration:underline;text-underline-offset:5px}
+.legal-nav a,.legal-nav button{color:var(--ink-muted)}
+.legal-nav a[aria-current="page"],.legal-nav button[aria-current="page"]{color:var(--ink);text-decoration:underline;text-underline-offset:5px}
 .legal-sec{margin-top:40px}
 .legal-sec p,.legal-sec li{font-size:15px;line-height:1.75;color:var(--charcoal)}
 .legal-sec p{margin-top:12px}

@@ -32,6 +32,10 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: MAIL_API_KEY              # Brevo API 키 (비밀번호 재설정 메일) — 무료 SMTP 포트가 막혀 HTTPS API 사용
+        sync: false
+      - key: MAIL_FROM                 # Brevo 에서 인증한 발신 이메일
+        sync: false
       - key: COOKIE_SAME_SITE          # Vercel rewrite(같은 origin) 구성
         value: Lax
       - key: DB_POOL_SIZE

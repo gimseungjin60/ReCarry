@@ -39,7 +39,7 @@ import tools.jackson.databind.ObjectMapper;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Import(TestDatabaseConfig.class)
+@Import({ TestDatabaseConfig.class, ApiIntegrationTest.MailCapture.class })
 class ApiIntegrationTest {
 
 	static final String ADMIN_EMAIL = "admin-" + UUID.randomUUID() + "@test.recarry";
@@ -61,7 +61,36 @@ class ApiIntegrationTest {
 		r.add("recarry.admin.password", () -> ADMIN_PASSWORD);
 		// 만료 정책 시행일 이전으로 되돌린 created_at 도 대상이 되게 한다
 		r.add("recarry.booking.request-expiry-from", () -> "2000-01-01");
+		// 메일은 실제로 보내지 않고 CapturingMailer 가 받는다
+		r.add("recarry.mail.log-only", () -> "true");
 	}
+
+	/** 보낸 메일을 기억하는 Mailer — 비밀번호 재설정 코드를 테스트가 읽는다 */
+	@org.springframework.boot.test.context.TestConfiguration
+	static class MailCapture {
+		@org.springframework.context.annotation.Bean
+		@org.springframework.context.annotation.Primary
+		CapturingMailer capturingMailer(com.recarry.common.AppProperties props) {
+			return new CapturingMailer(props);
+		}
+	}
+
+	static class CapturingMailer extends com.recarry.common.Mailer {
+		final java.util.Map<String, String> lastBody = new java.util.concurrent.ConcurrentHashMap<>();
+
+		CapturingMailer(com.recarry.common.AppProperties props) {
+			super(props);
+		}
+
+		@Override
+		public boolean send(String to, String subject, String text) {
+			lastBody.put(to, text);
+			return true;
+		}
+	}
+
+	@Autowired
+	CapturingMailer mails;
 
 	@LocalServerPort
 	int port;
@@ -710,6 +739,79 @@ class ApiIntegrationTest {
 		assertThat(agreed.body().get("consentRequired").asBoolean()).isFalse();
 		assertThat(jdbc.queryForObject("SELECT terms_version FROM users WHERE email = ?", String.class, email)).isEqualTo("2026-10-23");
 		assertThat(call("POST", "/api/bookings", token, booking("24", null, window(3), null)).status()).isEqualTo(201);
+	}
+
+	// ------------------------------------------------------------------ 비밀번호 찾기
+
+	String codeIn(String email) {
+		var m = java.util.regex.Pattern.compile("([0-9]{6})").matcher(mails.lastBody.get(email));
+		assertThat(m.find()).isTrue();
+		return m.group(1);
+	}
+
+	@Test
+	void password_reset_by_email_code() throws Exception {
+		String email = "reset-" + UUID.randomUUID() + "@test.recarry";
+		String token = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "재설정", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).session();
+
+		// 없는 이메일도 같은 응답 (가입 여부 비노출) · 메일은 가지 않는다
+		String nobody = "nobody-" + UUID.randomUUID() + "@test.recarry";
+		assertThat(call("POST", "/api/auth/password-reset/request", null, java.util.Map.of("email", nobody)).status()).isEqualTo(204);
+		assertThat(mails.lastBody).doesNotContainKey(nobody);
+
+		assertThat(call("POST", "/api/auth/password-reset/request", null, java.util.Map.of("email", email.toUpperCase())).status()).isEqualTo(204);
+		String first = codeIn(email);
+		// 다시 요청하면 이전 코드는 쓸 수 없다
+		call("POST", "/api/auth/password-reset/request", null, java.util.Map.of("email", email));
+		String code = codeIn(email);
+		java.util.Map<String, Object> confirm = new java.util.HashMap<>(java.util.Map.of("email", email, "code", first, "newPassword", "resetpass1"));
+		if (!first.equals(code)) {
+			assertThat(call("POST", "/api/auth/password-reset/confirm", null, confirm).code()).isEqualTo("INVALID_CODE");
+		}
+		confirm.put("code", code.equals("000000") ? "111111" : "000000");
+		assertThat(call("POST", "/api/auth/password-reset/confirm", null, confirm).code()).isEqualTo("INVALID_CODE");
+		confirm.put("code", "12ab");
+		assertThat(call("POST", "/api/auth/password-reset/confirm", null, confirm).code()).isEqualTo("VALIDATION_FAILED");
+
+		Thread.sleep(1100); // 토큰 iat(초 단위)가 재설정 시각보다 앞서게
+		confirm.put("code", code);
+		assertThat(call("POST", "/api/auth/password-reset/confirm", null, confirm).status()).isEqualTo(204);
+		// 재설정하면 기존 로그인은 끊기고, 새 비밀번호로 로그인한다. 같은 코드는 다시 쓸 수 없다
+		assertThat(call("GET", "/api/users/me", token, null).status()).isEqualTo(401);
+		assertThat(call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "passw0rd!")).status()).isEqualTo(401);
+		assertThat(call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "resetpass1")).status()).isEqualTo(200);
+		assertThat(call("POST", "/api/auth/password-reset/confirm", null, confirm).code()).isEqualTo("INVALID_CODE");
+	}
+
+	@Test
+	void reset_code_locks_after_five_wrong_attempts() throws Exception {
+		String email = "lock-" + UUID.randomUUID() + "@test.recarry";
+		call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "잠금", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
+		call("POST", "/api/auth/password-reset/request", null, java.util.Map.of("email", email));
+		String code = codeIn(email);
+		String wrong = code.equals("000000") ? "111111" : "000000";
+		for (int i = 0; i < 5; i++) {
+			call("POST", "/api/auth/password-reset/confirm", null, java.util.Map.of("email", email, "code", wrong, "newPassword", "resetpass1"));
+		}
+		// 5번 틀린 뒤에는 맞는 코드도 거절 — 새 코드를 받아야 한다
+		assertThat(call("POST", "/api/auth/password-reset/confirm", null,
+			java.util.Map.of("email", email, "code", code, "newPassword", "resetpass1")).code()).isEqualTo("INVALID_CODE");
+	}
+
+	@Test
+	void find_email_by_name_and_phone_shows_masked_address() throws Exception {
+		String local = "findme" + UUID.randomUUID().toString().substring(0, 8);
+		String phone = "010-" + (1000 + new SecureRandom().nextInt(9000)) + "-" + (1000 + new SecureRandom().nextInt(9000));
+		call("POST", "/api/auth/signup", null, java.util.Map.of("email", local + "@test.recarry", "password", "passw0rd!",
+			"name", "찾기테스트", "phone", phone, "agreeTerms", true, "agreePrivacy", true));
+		// 하이픈 없이 입력해도 찾는다. 이메일은 앞 2글자만 보인다
+		Res found = call("POST", "/api/auth/find-email", null, java.util.Map.of("name", "찾기테스트", "phone", phone.replace("-", "")));
+		assertThat(found.status()).isEqualTo(200);
+		assertThat(found.body().get("emails").get(0).asString()).isEqualTo("fi***@test.recarry");
+		Res none = call("POST", "/api/auth/find-email", null, java.util.Map.of("name", "다른이름", "phone", phone));
+		assertThat(none.body().get("emails").size()).isZero();
 	}
 
 	@Test

@@ -36,10 +36,12 @@ public class AuthController {
 	private final JwtDecoder decoder;
 	private final UserRepository users;
 	private final AppProperties props;
+	private final PasswordResetService resets;
 
 	public AuthController(AuthService auth, SessionCookies cookies, JwtDecoder decoder, UserRepository users,
-			AppProperties props) {
+			AppProperties props, PasswordResetService resets) {
 		this.props = props;
+		this.resets = resets;
 		this.auth = auth;
 		this.cookies = cookies;
 		this.decoder = decoder;
@@ -55,6 +57,24 @@ public class AuthController {
 	@PostMapping("/login")
 	public AuthResponse login(@Valid @RequestBody LoginRequest req, HttpServletRequest http, HttpServletResponse res) {
 		return start(auth.login(req, http.getRemoteAddr()), res);
+	}
+
+	/** 비밀번호 재설정 코드 요청 — 가입 여부와 관계없이 204 */
+	@PostMapping("/password-reset/request")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void requestReset(@Valid @RequestBody AuthDtos.ResetRequest req, HttpServletRequest http) {
+		resets.request(req.email(), http.getRemoteAddr());
+	}
+
+	@PostMapping("/password-reset/confirm")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void confirmReset(@Valid @RequestBody AuthDtos.ResetConfirm req) {
+		resets.confirm(req.email(), req.code(), req.newPassword());
+	}
+
+	@PostMapping("/find-email")
+	public AuthDtos.FindEmailResponse findEmail(@Valid @RequestBody AuthDtos.FindEmailRequest req, HttpServletRequest http) {
+		return new AuthDtos.FindEmailResponse(resets.findEmails(req.name(), req.phone(), http.getRemoteAddr()));
 	}
 
 	@PostMapping("/logout")

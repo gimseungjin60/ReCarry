@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /** application.yml 의 recarry.* — 비밀 값은 모두 환경변수에서 들어온다. */
 @ConfigurationProperties("recarry")
 public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginLimit, Admin admin, Booking booking,
-		Legal legal) {
+		Legal legal, Mail mail) {
 
 	public record Jwt(String secret, long ttlMinutes) {}
 
@@ -33,6 +33,13 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginL
 	 */
 	public record Booking(ZoneId zone, int maxNights, int depositPercent, int requestExpiryDays,
 			java.time.LocalDate requestExpiryFrom) {}
+
+	/** 거래 메일 발송 (Brevo HTTPS API). apiKey 가 비어 있으면 보내지 않는다 */
+	public record Mail(String apiKey, String from, String fromName, boolean logOnly) {
+		public boolean configured() {
+			return apiKey != null && !apiKey.isBlank() && from != null && !from.isBlank();
+		}
+	}
 
 	/** 가입 시 동의받는 문서 버전 — 문서가 바뀌면 함께 올린다 */
 	public record Legal(String termsVersion, String privacyVersion) {}

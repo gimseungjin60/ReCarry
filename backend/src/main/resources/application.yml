@@ -57,6 +57,11 @@ recarry:
     deposit-percent: 30            # 보증금 = 대여 요금의 30% (100원 미만 버림). docs/POLICY.md
     request-expiry-days: 3         # 확정되지 않은 예약 요청은 접수 3일 뒤 자동 취소
     request-expiry-from: 2026-10-20  # 정책 시행일 — 이전 요청은 자동 취소하지 않는다
+  mail:                            # 거래 메일(비밀번호 재설정). Render 무료는 SMTP 포트가 막혀 HTTPS API(Brevo)를 쓴다
+    api-key: ${MAIL_API_KEY:}      # 비어 있으면 메일을 보내지 않는다 (운영 기동 시 경고)
+    from: ${MAIL_FROM:}            # Brevo 에서 인증한 발신 주소
+    from-name: RECARRY
+    log-only: false                # local 프로필만 true — 코드가 로그에 남으므로 운영에서 켜지 않는다
   legal:                           # 가입 시 동의받는 문서 버전 (users 에 기록) = 화면 문서의 시행일. src/data/legal.ts 와 같이 바꾼다
     terms-version: "2026-10-23"
     privacy-version: "2026-10-23"

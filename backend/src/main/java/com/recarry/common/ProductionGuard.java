@@ -53,12 +53,18 @@ public class ProductionGuard implements FlywayConfigurationCustomizer {
 		if (!env.getProperty("recarry.cookie.secure", Boolean.class, true)) {
 			problems.add("session cookie must be Secure in production");
 		}
+		if (env.getProperty("recarry.mail.log-only", Boolean.class, false)) {
+			problems.add("mail log-only must be off in production (reset codes would be logged)");
+		}
 		if (!problems.isEmpty()) {
 			throw new IllegalStateException("Refusing to start with profile 'prod': " + String.join("; ", problems));
 		}
 		// 막지는 않는다 (로컬에서 운영 DB 를 점검할 때는 비어 있어도 된다). 배포에서 비어 있으면 로그인·예약 POST 가 403 이 된다
 		if (env.getProperty("recarry.cors.allowed-origins", "").isBlank()) {
 			log.warn("CORS_ALLOWED_ORIGINS is empty: requests proxied from the frontend domain (e.g. Vercel rewrite) will be rejected. Set it to the frontend origin.");
+		}
+		if (env.getProperty("recarry.mail.api-key", "").isBlank() || env.getProperty("recarry.mail.from", "").isBlank()) {
+			log.warn("MAIL_API_KEY / MAIL_FROM are empty: password reset emails will not be sent.");
 		}
 	}
 }

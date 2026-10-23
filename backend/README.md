@@ -78,7 +78,7 @@ Health check: `GET /api/health` (인증 불필요, DB 확인 포함).
 | `SPRING_PROFILES_ACTIVE` | `prod` |
 | `DB_URL` `DB_USERNAME` `DB_PASSWORD` | Supabase session pooler |
 | `JWT_SECRET` | 새로 만든 32바이트 이상 값 |
-| `CORS_ALLOWED_ORIGINS` | 프론트 origin (예: `https://recarry.vercel.app`) — rewrite 구성에서도 필요 |
+| `CORS_ALLOWED_ORIGINS` | 프론트 origin (예: `https://re-carry.vercel.app`) — rewrite 구성에서도 필요 |
 | `COOKIE_SAME_SITE` | 프론트와 같은 사이트면 `Lax`, 다른 사이트면 `None` |
 | `ADMIN_EMAIL` `ADMIN_PASSWORD` | 첫 관리자 생성 시에만 |
 | `PORT` · `FORWARD_HEADERS_STRATEGY` · `LOGIN_MAX_FAILURES_PER_IP` | 선택 — `docs/DEPLOYMENT.md` §3 |

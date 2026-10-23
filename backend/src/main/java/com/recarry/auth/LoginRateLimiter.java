@@ -49,6 +49,18 @@ public class LoginRateLimiter {
 		counters.remove("e:" + email);
 	}
 
+	/**
+	 * 시도할 때마다 센다 — 창 안에서 max 번을 넘으면 429. (비밀번호 재설정 · 이메일 찾기 남용 방지)
+	 * key 는 용도별 접두사를 붙여 로그인 실패 카운터와 섞이지 않게 한다.
+	 */
+	public void consume(String key, int max) {
+		if (failures(key) >= max) {
+			throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_ATTEMPTS",
+				"요청이 너무 많습니다. " + cfg.windowMinutes() + "분 뒤에 다시 시도해주세요.");
+		}
+		bump(key);
+	}
+
 	private int failures(String key) {
 		Window w = counters.get(key);
 		return w == null || expired(w) ? 0 : w.failures();

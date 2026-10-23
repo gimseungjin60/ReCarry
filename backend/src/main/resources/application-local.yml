@@ -7,3 +7,5 @@ recarry:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5175}
   cookie:
     secure: ${COOKIE_SECURE:false}   # http://localhost
+  mail:
+    log-only: ${MAIL_LOG_ONLY:true}  # 로컬은 메일 대신 서버 로그에 남긴다 (MAIL_API_KEY 가 없을 때만)
