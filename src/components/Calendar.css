@@ -4,7 +4,7 @@
 .cal-top button{width:36px;height:36px;border:1px solid var(--hairline);border-radius:50%;display:flex;align-items:center;justify-content:center}
 .cal-top button:hover{border-color:var(--ink)}
 .cal-months{display:grid;grid-template-columns:repeat(var(--m,1),1fr);gap:40px}
-.cal-m h4{font-size:15px;font-weight:500;margin-bottom:10px}
+.cal-m h4{font-size:15px;font-weight:600;margin-bottom:10px}
 .cal-g{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px}
 .cal-g .wd{font-size:11px;color:var(--ink-muted);text-align:center;padding:6px 0}
 .cal-g button{height:40px;font-size:14px;position:relative}

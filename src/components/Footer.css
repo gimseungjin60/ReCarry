@@ -1,9 +1,12 @@
 /* prototype: footer */
-.foot{padding:72px 0 40px;border-top:1px solid var(--hairline)}
+/* parchment 띠 — 정보가 촘촘한 유일한 구역 */
+.foot{padding:56px 0 32px;background:var(--canvas);color:var(--charcoal)}
+.foot .label{color:var(--ink);font-size:12px;letter-spacing:.02em;text-transform:none}
 .foot .grid>div{grid-column:span 3}
-.foot .fl{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink-muted);margin-top:16px;align-items:flex-start}
+.foot .fl{display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:2.1;color:var(--ink-muted);margin-top:10px;align-items:flex-start}
 .foot .fl a:hover,.foot .fl button:hover{color:var(--ink)}
-.foot .bottom{margin-top:72px;display:flex;justify-content:space-between;gap:16px;font-size:13px;color:var(--ink-muted)}
+.foot .bottom{margin-top:20px;padding-top:16px;border-top:1px solid var(--hairline);display:flex;justify-content:space-between;gap:16px;font-size:12px;color:var(--ink-muted)}
+.foot .small{font-size:12px}
 
 @container app (max-width:720px){
   .foot .grid>div{margin-bottom:32px}

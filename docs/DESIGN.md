@@ -159,3 +159,22 @@ Motion은 브랜드를 보조해야 한다.
 - excessive glow
 - constant movement
 - unnecessary 3D effects
+---
+
+## Apple 원칙 적용 (2026-10)
+
+참고: `docs/DESIGN-apple.md` (getdesign.md 의 Apple 웹 분석). **원칙만 옮기고 브랜드는 복제하지 않는다** (CLAUDE.md §8).
+값은 `src/styles/tokens.css` 한 곳에 있다.
+
+| Apple 원칙 | RECARRY 적용 |
+|---|---|
+| 면의 교차로 구획 (white ↔ parchment ↔ dark), 테두리 최소 | `--canvas` = parchment `#f5f5f7`, 다크 블록은 night `#1d1d1f` · 브랜드 블록은 forest 유지 |
+| 강조색 하나 (Action Blue) | **모노크롬** — 행동(버튼·링크)은 ink `#1d1d1f` 하나. Apple 블루는 쓰지 않는다. 초록은 forest 블록·상태 점에만 |
+| SF Pro, 제목 600 + 촘촘한 자간, 본문 17px | Pretendard (한글) · 제목 600 · 자간 -0.025~-0.035em · 본문 17px/1.6 · 500 굵기는 제목에 쓰지 않음 |
+| pill CTA, 누르면 scale(.95) | `.btn` pill 48px, `:active` scale(.96) |
+| 반경 문법: 도구 8 · 카드 18 · 행동 pill | `--radius-sm 8` · `--radius-md 12`(입력) · `--radius-lg 18`(카드·제품 프레임) · pill |
+| 그림자는 제품 이미지에만 | `--shadow-product` 토큰만 둔다. UI 에는 그림자 없음 |
+| 반투명 blur 내비, parchment 푸터 | nav `rgba(255,255,255,.78)` + `blur(20px)` 56px · footer parchment, 촘촘한 링크 열 |
+| 화면 가득 채우는 이미지는 직각 | 모바일 제품 갤러리·Before/After 는 직각, 카드 안 이미지는 18 |
+
+유지하는 RECARRY 요소: Carrier ID(mono) · 검수 표시 · Carrier Story · Circular Journey(forest 블록) · 캐리어 일러스트의 signal 오렌지 태그.

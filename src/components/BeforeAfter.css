@@ -1,5 +1,5 @@
 /* prototype: before / after 비교 슬라이더 (.compare). 그리드 위치는 사용하는 쪽에서 정한다. */
-.compare{position:relative;aspect-ratio:4/5;overflow:hidden;user-select:none;background:#bdb8ae}
+.compare{position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:var(--radius-lg);user-select:none;background:#bdb8ae}
 .compare .layer{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center}
 .compare .layer svg.bag{height:66%;width:auto;margin-bottom:8%}
 .compare .before{background:#c9c4ba}

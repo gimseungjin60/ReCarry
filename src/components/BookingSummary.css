@@ -6,7 +6,7 @@
 .sum div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--hairline)}
 .sum dt{color:var(--ink-muted)}
 .sum dd{margin:0;text-align:right}
-.sum .tot{border-bottom:0;padding-top:16px;font-size:18px;font-weight:500}
+.sum .tot{border-bottom:0;padding-top:16px;font-size:18px;font-weight:600}
 .sum .tot dt{color:var(--ink)}
 
 @container app (max-width:1080px){ .bk-side{grid-column:8/13} }

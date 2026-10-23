@@ -3,7 +3,7 @@
 .tl li{display:grid;grid-template-columns:96px 1fr;gap:16px;padding:18px 0;border-top:1px solid var(--night-line)}
 .tl li:last-child{border-bottom:1px solid var(--night-line)}
 .tl .d{font-family:var(--font-mono);font-size:12px;color:var(--on-night-muted);padding-top:3px}
-.tl .h{font-size:16px;font-weight:500}
+.tl .h{font-size:16px;font-weight:600}
 .tl .s{font-size:14px;color:var(--on-night-muted);margin-top:2px}
 .tl li.last .h{color:var(--on-night)}
 .tl li.last .d{color:var(--signal)}
