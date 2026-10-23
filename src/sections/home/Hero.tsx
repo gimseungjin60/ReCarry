@@ -77,7 +77,7 @@ function HeroBooking({ list, size, onSize }: BookingProps) {
         )}
       </div>
       <Button arrow onClick={book} className="hbook-go">
-        {carrier && n > 0 ? won(priceFor(carrier, n)) : '예약하기'}
+        {carrier && n > 0 ? `${won(priceFor(carrier, n))} 예약하기` : '예약하기'}
       </Button>
     </div>
   )

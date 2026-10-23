@@ -17,8 +17,8 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginL
 	/** JWT 를 담는 httpOnly 쿠키. sameSite 는 Lax · Strict · None (None 이면 secure 필수) */
 	public record Cookie(String name, boolean secure, String sameSite) {}
 
-	/** 로그인 실패 제한 — 창(window) 안에서 이메일별 · IP별 실패 횟수 */
-	public record LoginLimit(int maxFailuresPerEmail, int maxFailuresPerIp, int windowMinutes) {}
+	/** 로그인 실패 제한 — 창(window) 안에서 이메일별 실패 횟수 (IP 는 쓰지 않는다 — LoginRateLimiter) */
+	public record LoginLimit(int maxFailuresPerEmail, int windowMinutes) {}
 
 	/** 둘 다 비어 있지 않을 때만 첫 관리자를 만든다. */
 	public record Admin(String email, String password) {
@@ -32,7 +32,12 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginL
 	 * requestExpiryFrom: 이 날짜(서비스 지역 기준) 이후 접수된 요청에만 만료를 적용한다
 	 */
 	public record Booking(ZoneId zone, int maxNights, int depositPercent, int requestExpiryDays,
-			java.time.LocalDate requestExpiryFrom) {}
+			java.time.LocalDate requestExpiryFrom) {
+		/** 자동 만료가 적용되기 시작하는 시각 (서비스 지역 자정) */
+		public java.time.Instant expiryAppliesFrom() {
+			return requestExpiryFrom.atStartOfDay(zone).toInstant();
+		}
+	}
 
 	/** 거래 메일 발송 (Brevo HTTPS API). apiKey 가 비어 있으면 보내지 않는다 */
 	public record Mail(String apiKey, String from, String fromName, boolean logOnly) {

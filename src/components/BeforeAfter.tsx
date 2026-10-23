@@ -11,7 +11,7 @@ export default function BeforeAfter({ carrier }: { carrier: Carrier }) {
   return (
     <div className="compare">
       <div className="layer before">
-        <span className="lbl">BEFORE — {carrier.story[0].date}</span>
+        <span className="lbl">BEFORE — {carrier.story[0]?.date ?? carrier.id}</span>
         <ProductBag carrier={carrier} worn handle="down" tag label={`${carrier.name} 입고 당시`} />
       </div>
       <div className="layer after" style={{ clipPath: `inset(0 0 0 ${v}%)` }}>

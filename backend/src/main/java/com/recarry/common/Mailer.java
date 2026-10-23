@@ -7,10 +7,14 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -29,9 +33,30 @@ public class Mailer {
 	private final AppProperties.Mail cfg;
 	private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 	private final ObjectMapper json = new ObjectMapper();
+	/** 백그라운드 발송 스레드 하나 — 요청 스레드가 메일 API 를 기다리지 않게 */
+	private final ExecutorService pool = Executors.newSingleThreadExecutor(r -> {
+		Thread t = new Thread(r, "mailer");
+		t.setDaemon(true);
+		return t;
+	});
 
 	public Mailer(AppProperties props) {
 		this.cfg = props.mail();
+	}
+
+	/** 트랜잭션이 커밋된 뒤 백그라운드에서 보낸다 (트랜잭션 밖이면 바로 백그라운드로) */
+	public void sendAfterCommit(String to, String subject, String text) {
+		Runnable task = () -> pool.execute(() -> send(to, subject, text));
+		if (TransactionSynchronizationManager.isSynchronizationActive()) {
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit() {
+					task.run();
+				}
+			});
+		} else {
+			task.run();
+		}
 	}
 
 	/** @return 보냈으면(또는 로컬 로그로 대신했으면) true */

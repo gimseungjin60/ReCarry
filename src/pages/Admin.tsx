@@ -6,7 +6,8 @@ import { AuditLog, Schedule } from '@/pages/AdminOps'
 import { BOOKING_NEXT, BOOKING_STATUS, CARRIER_OPERATIONAL, CARRIER_STATUS } from '@/data/status'
 import type { ApiCarrier, Booking, BookingStatus, CarrierSize, CarrierStatus } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
-import { fmt, parseYmd, won } from '@/lib/format'
+import { invalidateCatalog } from '@/lib/catalog'
+import { won } from '@/lib/format'
 
 /* 관리자 화면 — 재고 요약 · 캐리어 목록(→ 상세 · 등록) · 사이즈 상품 · 예약 목록 / 상태 변경 / 상세.
    RequireAuth admin 으로 감싸고, 서버도 /api/admin/** 를 ADMIN 만 통과시킨다. */
@@ -38,6 +39,7 @@ export function Admin() {
     setErr('')
     try {
       await api(`/api/admin/carriers/${id}/status`, { method: 'PATCH', body: { status } })
+      invalidateCatalog()
       await loadCarriers()
     } catch (e) {
       fail(e)
@@ -45,6 +47,8 @@ export function Admin() {
   }
 
   const setBookingStatus = async (number: string, status: BookingStatus) => {
+    // 예약 상태는 되돌릴 수 없다 (취소 · 반납은 끝 상태)
+    if (!window.confirm(`${number} 예약을 '${BOOKING_STATUS[status]}' 상태로 바꿀까요? 되돌릴 수 없습니다.`)) return
     setErr('')
     try {
       await api(`/api/admin/bookings/${number}/status`, { method: 'PATCH', body: { status } })
@@ -200,7 +204,8 @@ export function Admin() {
                       </Link>
                     </td>
                     <td>
-                      {fmt(parseYmd(b.startDate))} — {fmt(parseYmd(b.endDate))}
+                      {/* 연도까지 — 몇 달 뒤 예약도 섞여 있다 */}
+                      {b.startDate.replaceAll('-', '.')} — {b.endDate.slice(5).replaceAll('-', '.')}
                     </td>
                     <td>{won(b.totalPrice)}</td>
                     <td>{BOOKING_STATUS[b.status]}</td>
@@ -250,7 +255,7 @@ export function AdminBooking() {
 
   return (
     <div className="wrap acct-pg">
-      <div className="crumb" style={{ padding: 0 }}>
+      <div className="crumb keep">
         <Link to="/admin">Admin</Link>
         <span>/</span>
         <span style={{ color: 'var(--ink)' }}>예약 상세</span>

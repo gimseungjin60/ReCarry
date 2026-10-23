@@ -62,4 +62,5 @@ public class PasswordResetCode {
 	}
 
 	String getCodeHash() { return codeHash; }
+	Instant getCreatedAt() { return createdAt; }
 }

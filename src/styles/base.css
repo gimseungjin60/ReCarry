@@ -23,10 +23,7 @@ h1,h2,h3,h4,p{margin:0;font-weight:inherit}
 .wrap{max-width:1440px;margin:0 auto;padding:0 40px}
 .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px}
 .sec{padding:var(--space-11) 0}
-.sec-tight{padding:var(--space-9) 0}
-.blk-forest{background:var(--forest);color:var(--on-forest);--focus:var(--on-forest)}
 .blk-night{background:var(--night);color:var(--on-night);--focus:var(--on-night)}
-.blk-sand{background:var(--sand)}
 .blk-canvas{background:var(--canvas)}
 
 /* ---------- typography ----------
@@ -34,18 +31,15 @@ h1,h2,h3,h4,p{margin:0;font-weight:inherit}
 .d-xl{font-family:var(--font-display);font-weight:600;font-size:clamp(40px,5.6cqi,88px);line-height:1.08;letter-spacing:-.035em}
 .d-l{font-family:var(--font-display);font-weight:600;font-size:clamp(32px,4cqi,60px);line-height:1.12;letter-spacing:-.03em}
 .d-m{font-family:var(--font-display);font-weight:600;font-size:clamp(28px,2.8cqi,40px);line-height:1.18;letter-spacing:-.025em}
-.d-latin{font-family:var(--font-display);font-weight:600;font-size:clamp(44px,7.6cqi,120px);line-height:.95;letter-spacing:-.045em;text-transform:uppercase}
 .t-title{font-size:21px;line-height:1.35;font-weight:600;letter-spacing:-.015em}
 .lead{font-size:19px;line-height:1.6;color:var(--charcoal);font-weight:400}
 .small{font-size:14px;line-height:1.6;color:var(--ink-muted);letter-spacing:-.005em}
 .label{font-family:var(--font-sans);font-size:12px;line-height:16px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
 .mono{font-family:var(--font-mono);font-size:12px;line-height:18px;letter-spacing:.02em}
 .muted{color:var(--ink-muted)}
-.blk-forest .muted{color:var(--on-forest-muted)}
 .blk-night .muted{color:var(--on-night-muted)}
 .idx{display:flex;gap:12px;align-items:center;color:var(--ink-muted)}
 .idx::after{content:"";width:40px;height:1px;background:currentColor;opacity:.5}
-.blk-forest .idx{color:var(--on-forest-muted)}
 .blk-night .idx{color:var(--on-night-muted)}
 
 /* ---------- buttons / links ----------
@@ -74,13 +68,10 @@ h1,h2,h3,h4,p{margin:0;font-weight:inherit}
 /* ---------- primitives ---------- */
 .tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border:1px solid currentColor;border-radius:var(--radius-pill);
   font-family:var(--font-sans);font-size:11px;letter-spacing:.08em;font-weight:600;text-transform:uppercase}
-.tag-solid{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
 /* 미디어 프레임: 사진(.ph) 또는 SVG 캐리어(.bag)를 담는 공통 컨테이너 */
 .frame{position:relative;overflow:hidden;background:var(--stone);display:flex;align-items:flex-end;justify-content:center}
 .frame svg.bag{height:78%;width:auto;margin-bottom:6%;transition:transform .8s var(--ease)}
-/* 카드 안의 제품 이미지는 둥근 모서리(18). 화면 가득 채우는 이미지는 직각 그대로 */
-.frame.rounded,.card .frame{border-radius:var(--radius-lg)}
 .frame .corner{position:absolute;top:20px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:flex-start;z-index:1}
 .frame svg.crop{height:100%;width:100%;margin:0}
 
@@ -100,10 +91,8 @@ h1,h2,h3,h4,p{margin:0;font-weight:inherit}
   .grid{grid-template-columns:minmax(0,1fr);row-gap:0}
   .grid>*{grid-column:1/-1 !important}
   .sec{padding:var(--space-9) 0}
-  .sec-tight{padding:var(--space-8) 0}
   .lead{font-size:17px}
   body{font-size:16px}
-  .br-d{display:none}
 }
 
 /* 홈 내부 앵커 이동 시 sticky nav 에 가려지지 않도록 */

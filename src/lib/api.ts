@@ -48,7 +48,12 @@ export async function api<T>(path: string, { method = 'GET', body }: Options = {
     throw new ApiError(0, 'NETWORK', '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.')
   }
 
-  const text = await res.text()
+  let text: string
+  try {
+    text = await res.text()
+  } catch {
+    throw new ApiError(0, 'NETWORK', '응답을 받는 중 연결이 끊겼습니다. 잠시 후 다시 시도해주세요.')
+  }
   const data = text ? safeJson(text) : null
   if (!res.ok) {
     const e = (data ?? {}) as { code?: string; message?: string; fields?: Record<string, string> }

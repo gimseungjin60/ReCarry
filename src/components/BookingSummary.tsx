@@ -62,8 +62,12 @@ export default function BookingSummary({ carrier, start, end }: Props) {
           <dd>준비 중</dd>
         </div>
         <div className="tot">
-          <dt>합계</dt>
+          <dt>대여 요금</dt>
           <dd>{n ? won(priceFor(carrier, n)) : won(carrier.price) + '~'}</dd>
+        </div>
+        <div>
+          <dt>보증금</dt>
+          <dd>대여 요금의 30% (반납 후 환불)</dd>
         </div>
       </dl>
     </aside>

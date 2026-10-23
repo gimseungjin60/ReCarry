@@ -5,10 +5,12 @@ import java.util.Comparator;
 import java.util.List;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
@@ -88,14 +90,15 @@ public final class CarrierDtos {
 
 	/** 사이즈 상품의 가격 · 문구. headline 줄바꿈은 '\n' */
 	public record ModelUpdateRequest(
-		@NotBlank @Size(max = 50) String name,
-		@NotBlank @Size(max = 20) String inch,
-		@NotBlank @Size(max = 20) String capacity,
-		@NotBlank @Size(max = 60) String usage,
-		@NotBlank @Size(max = 40) String dims,
-		@NotBlank @Size(max = 20) String weight,
-		@NotNull @PositiveOrZero Integer price,
-		@NotNull @PositiveOrZero Integer extraNightPrice,
-		@NotBlank @Size(max = 120) String headline,
-		@NotBlank @Size(max = 2000) String description) {}
+		@NotBlank(message = "상품명을 입력해주세요.") @Size(max = 50) String name,
+		@NotBlank(message = "인치 표기를 입력해주세요.") @Size(max = 20) String inch,
+		@NotBlank(message = "용량을 입력해주세요.") @Size(max = 20) String capacity,
+		@NotBlank(message = "용도를 입력해주세요.") @Size(max = 60) String usage,
+		@NotBlank(message = "크기를 입력해주세요.") @Size(max = 40) String dims,
+		@NotBlank(message = "무게를 입력해주세요.") @Size(max = 20) String weight,
+		// 상한: 30박 × 1박 요금 · 보증금 계산이 int 범위를 넘지 않게 (실제 요금보다 훨씬 크다)
+		@NotNull(message = "기본 요금을 입력해주세요.") @Positive(message = "기본 요금을 입력해주세요.") @Max(value = 10_000_000, message = "요금이 너무 큽니다.") Integer price,
+		@NotNull(message = "1박 추가 요금을 입력해주세요.") @PositiveOrZero(message = "1박 추가 요금은 0원 이상입니다.") @Max(value = 1_000_000, message = "요금이 너무 큽니다.") Integer extraNightPrice,
+		@NotBlank(message = "헤드라인을 입력해주세요.") @Size(max = 120) String headline,
+		@NotBlank(message = "설명을 입력해주세요.") @Size(max = 2000) String description) {}
 }

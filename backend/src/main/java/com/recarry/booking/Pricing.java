@@ -14,7 +14,7 @@ public final class Pricing {
 
 	/** 보증금 = 대여 요금 × percent%, 100원 미만 버림. 대여 요금과 별도로 받고 반납 후 돌려준다 (docs/POLICY.md). */
 	public static int deposit(int total, int percent) {
-		return total * percent / 100 / 100 * 100;
+		return (int) ((long) total * percent / 100 / 100 * 100);   // long — 큰 금액에서 int 오버플로 방지
 	}
 
 	public static Quote quote(int price, int extraNightPrice, int nights) {

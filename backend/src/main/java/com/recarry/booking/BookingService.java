@@ -155,7 +155,7 @@ public class BookingService {
 	 */
 	@Transactional
 	public void closeForWithdrawal(Long userId) {
-		List<Booking> mine = bookings.findMine(userId);
+		List<Booking> mine = bookings.lockAllOf(userId);
 		if (mine.stream().anyMatch(b -> b.getStatus() == BookingStatus.CONFIRMED || b.getStatus() == BookingStatus.IN_USE)) {
 			throw ApiException.conflict("HAS_ACTIVE_BOOKING",
 				"확정되었거나 이용 중인 예약이 있어 탈퇴할 수 없습니다. 반납이 끝난 뒤 다시 시도해주세요.");
@@ -183,7 +183,7 @@ public class BookingService {
 	}
 
 	private BookingResponse respond(Booking b, boolean withCustomer) {
-		return BookingResponse.of(b, withCustomer, requestTtl);
+		return BookingResponse.of(b, withCustomer, requestTtl, props.booking().expiryAppliesFrom());
 	}
 
 	private boolean sizeExists(String size) {

@@ -28,6 +28,15 @@ export const priceFor = (p: Carrier, n: number) => p.price + Math.max(0, (n || 2
 export const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
+/** 서비스 지역(Asia/Seoul)의 오늘 — 서버가 출발일을 판단하는 기준. 다른 시간대 브라우저에서도 같다 */
+export const seoulToday = () => parseYmd(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date()))
+
+/** 한 번에 예약할 수 있는 최대 박수 (backend recarry.booking.max-nights) */
+export const MAX_NIGHTS = 30
+
+/** 휴대폰 번호 형식 — backend AuthDtos.PHONE 과 같다 (숫자 9개 이상) */
+export const isPhone = (v: string) => /^(?=(?:[^0-9]*[0-9]){9})[0-9+\- ]{9,20}$/.test(v.trim())
+
 /** 'YYYY-MM-DD' → 로컬 Date */
 export const parseYmd = (s: string) => {
   const [y, m, d] = s.split('-').map(Number)

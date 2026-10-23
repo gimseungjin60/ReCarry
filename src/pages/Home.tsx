@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Hero from '@/sections/home/Hero'
 import CollectionPreview from '@/sections/home/CollectionPreview'
 import HowItWorks from '@/sections/home/HowItWorks'
@@ -15,6 +15,7 @@ import { useCatalog } from '@/lib/catalog'
 
 export default function Home() {
   const { state } = useLocation()
+  const navigate = useNavigate()
   // 카탈로그가 도착하면 새로 그려진 블록도 reveal 대상에 넣는다
   useReveal(useCatalog().list)
 
@@ -23,9 +24,9 @@ export default function Home() {
     const anchor = (state as { anchor?: string } | null)?.anchor
     if (!anchor) return
     document.getElementById(anchor)?.scrollIntoView()
-    // 새로고침·뒤로가기 때 다시 점프하지 않도록 state 를 비운다
-    window.history.replaceState({}, '')
-  }, [state])
+    // 새로고침·뒤로가기 때 다시 점프하지 않도록 state 를 비운다 (router 의 history 정보는 유지)
+    navigate('/', { replace: true, state: null, preventScrollReset: true })
+  }, [state, navigate])
 
   return (
     <>

@@ -8,7 +8,7 @@ export default function CarrierTimeline({ story, light }: { story: StoryEntry[];
   return (
     <ol className={light ? 'tl light' : 'tl'}>
       {story.map((s, i) => (
-        <li key={s.date} className={i === story.length - 1 ? 'last' : undefined}>
+        <li key={i} className={i === story.length - 1 ? 'last' : undefined}>
           <span className="d">{s.date}</span>
           <div>
             <p className="h">{s.title}</p>

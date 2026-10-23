@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BOOKING_STATUS } from '@/data/status'
+import { BOOKING_STATUS, CARRIER_EVENT, CARRIER_STATUS } from '@/data/status'
 import type { Booking } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
 import { addDays, fmt, parseYmd, ymd } from '@/lib/format'
@@ -98,6 +98,10 @@ const ACTION: Record<string, string> = {
   BOOKING_STATUS: '예약 상태',
 }
 
+/** "REPAIR → AVAILABLE" 같은 상태 코드를 화면 문구로 */
+const LABELS: Record<string, string> = { ...CARRIER_EVENT, ...CARRIER_STATUS, ...BOOKING_STATUS }
+const readable = (detail: string) => detail.replace(/\b[A-Z_]{4,}\b/g, (t) => LABELS[t] ?? t)
+
 export function AuditLog() {
   const [open, setOpen] = useState(false)
   const [logs, setLogs] = useState<Audit[] | null>(null)
@@ -141,7 +145,7 @@ export function AuditLog() {
                   <td>{l.admin}</td>
                   <td>{ACTION[l.action] ?? l.action}</td>
                   <td className="mono">{l.target}</td>
-                  <td style={{ whiteSpace: 'normal' }}>{l.detail}</td>
+                  <td style={{ whiteSpace: 'normal' }}>{readable(l.detail)}</td>
                 </tr>
               ))}
             </tbody>

@@ -128,7 +128,7 @@ export function MyBooking() {
   }, [bookingNumber])
 
   const cancel = async () => {
-    if (!b) return
+    if (!b || !window.confirm('예약 요청을 취소할까요? 잡혀 있던 캐리어는 다른 고객이 예약할 수 있게 됩니다.')) return
     setBusy(true)
     setErr('')
     try {
@@ -142,7 +142,7 @@ export function MyBooking() {
 
   return (
     <div className="wrap acct-pg">
-      <div className="crumb" style={{ padding: 0 }}>
+      <div className="crumb keep">
         <Link to="/mypage">My page</Link>
         <span>/</span>
         <span style={{ color: 'var(--ink)' }}>예약 상세</span>

@@ -56,14 +56,14 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public AuthResponse login(@Valid @RequestBody LoginRequest req, HttpServletRequest http, HttpServletResponse res) {
-		return start(auth.login(req, http.getRemoteAddr()), res);
+		return start(auth.login(req), res);
 	}
 
 	/** 비밀번호 재설정 코드 요청 — 가입 여부와 관계없이 204 */
 	@PostMapping("/password-reset/request")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void requestReset(@Valid @RequestBody AuthDtos.ResetRequest req, HttpServletRequest http) {
-		resets.request(req.email(), http.getRemoteAddr());
+		resets.request(req.email());
 	}
 
 	@PostMapping("/password-reset/confirm")
@@ -74,7 +74,7 @@ public class AuthController {
 
 	@PostMapping("/find-email")
 	public AuthDtos.FindEmailResponse findEmail(@Valid @RequestBody AuthDtos.FindEmailRequest req, HttpServletRequest http) {
-		return new AuthDtos.FindEmailResponse(resets.findEmails(req.name(), req.phone(), http.getRemoteAddr()));
+		return new AuthDtos.FindEmailResponse(resets.findEmails(req.name(), req.phone()));
 	}
 
 	@PostMapping("/logout")

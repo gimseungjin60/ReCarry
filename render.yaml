@@ -42,5 +42,3 @@ services:
         value: "5"
       - key: JWT_TTL_MINUTES
         value: "120"
-      - key: LOGIN_MAX_FAILURES_PER_IP # Vercel rewrite 뒤에서는 요청이 Vercel IP 몇 개로 모인다 (계정별 5회 제한은 그대로)
-        value: "300"

@@ -46,7 +46,6 @@ recarry:
     same-site: ${COOKIE_SAME_SITE:Lax}   # 프론트·API 가 다른 사이트면 None (Secure 필수)
   login-limit:                     # 로그인 실패 제한 (인스턴스 메모리 기준)
     max-failures-per-email: 5
-    max-failures-per-ip: ${LOGIN_MAX_FAILURES_PER_IP:30}   # 프록시 뒤라 IP 가 몇 개로 모이면 올린다
     window-minutes: 15
   admin:                           # 둘 다 있으면 기동 시 관리자 계정을 만들거나 승격한다
     email: ${ADMIN_EMAIL:}

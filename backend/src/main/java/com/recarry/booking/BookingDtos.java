@@ -48,10 +48,11 @@ public final class BookingDtos {
 			boolean cancellable, Instant createdAt, Instant expiresAt, Instant cancelledAt,
 			Booking.CancelReason cancelReason, Customer customer) {
 
-		static BookingResponse of(Booking b, boolean withCustomer, Duration requestTtl) {
+		static BookingResponse of(Booking b, boolean withCustomer, Duration requestTtl, Instant expiryFrom) {
 			var c = b.getCarrier();
+			// 자동 만료 대상(정책 시행 이후 접수된 요청)에만 기한을 보여준다 — BookingExpiry 와 같은 조건
 			Instant expiresAt = b.getStatus() == BookingStatus.REQUESTED && b.getCreatedAt() != null
-				? b.getCreatedAt().plus(requestTtl) : null;
+				&& !b.getCreatedAt().isBefore(expiryFrom) ? b.getCreatedAt().plus(requestTtl) : null;
 			return new BookingResponse(b.getBookingNumber(), b.getStatus(), c.getModel().getSize(),
 				c.getModel().getName(), c.getCode(), c.getGrade(), b.getStartDate(), b.getEndDate(), b.getNights(),
 				b.getStartDate().minusDays(1), b.getEndDate(), b.getRecipientName(), b.getPhone(), b.getAddress(),

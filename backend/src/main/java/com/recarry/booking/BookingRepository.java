@@ -48,6 +48,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 	@Query("select b from Booking b where b.bookingNumber = :number")
 	Optional<Booking> lockByNumber(@Param("number") String number);
 
+	/** 탈퇴 정리용 — 이 회원의 예약을 모두 잠근다 (관리자 확정 · 자동 만료와 동시에 바뀌지 않게) */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select b from Booking b where b.user.id = :userId")
+	List<Booking> lockAllOf(@Param("userId") Long userId);
+
 	@Query("""
 		select b from Booking b join fetch b.carrier c join fetch c.model join fetch b.user
 		where (:status is null or b.status = :status) order by b.startDate desc, b.id desc""")

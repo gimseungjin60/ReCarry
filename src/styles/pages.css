@@ -6,6 +6,7 @@
 /* ---------- product ---------- */
 .crumb{padding:24px 0 20px;font-size:13px;color:var(--ink-muted);display:flex;gap:8px}
 .crumb a:hover{color:var(--ink)}
+.crumb.keep{padding:0}
 .pd{align-items:start}
 .pd-gallery{grid-column:1/8}
 .pd-main{aspect-ratio:4/5;border-radius:var(--radius-lg)}
@@ -90,7 +91,7 @@
   .bk-main{grid-column:1/8}
 }
 @container app (max-width:720px){
-  .crumb{display:none}
+  .crumb:not(.keep){display:none}
   .pd-gallery{margin:0 -20px}
   .pd-main{border-radius:0}
   .pd-thumbs{padding:0 20px;grid-template-columns:repeat(4,1fr);gap:8px}
@@ -161,7 +162,11 @@
 .stock{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:16px}
 .stock>div{border-top:1px solid var(--ink);padding-top:16px}
 .stock .n{font-family:var(--font-display);font-size:32px;letter-spacing:-.03em;font-weight:600;margin:6px 0}
-.tbl-wrap{overflow-x:auto;margin-top:16px}
+/* 가로로 넘치는 표 — 가장자리 그림자로 옆에 더 있다는 것을 보여준다 (끝까지 밀면 사라짐) */
+.tbl-wrap{overflow-x:auto;margin-top:16px;
+  background:linear-gradient(to right,#fff 30%,rgba(255,255,255,0)),linear-gradient(to left,#fff 30%,rgba(255,255,255,0)) 100% 0,
+    radial-gradient(farthest-side at 0 50%,rgba(14,21,48,.14),transparent),radial-gradient(farthest-side at 100% 50%,rgba(14,21,48,.14),transparent) 100% 0;
+  background-repeat:no-repeat;background-size:40px 100%,40px 100%,14px 100%,14px 100%;background-attachment:local,local,scroll,scroll}
 .tbl{width:100%;border-collapse:collapse;font-size:14px;min-width:720px}
 .tbl th{text-align:left;font-weight:500;color:var(--ink-muted);font-size:12px;padding:10px 12px 10px 0;border-bottom:1px solid var(--ink);white-space:nowrap}
 .tbl td{padding:12px 12px 12px 0;border-bottom:1px solid var(--hairline);white-space:nowrap}

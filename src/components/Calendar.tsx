@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { fmt } from '@/lib/format'
+import { addDays, fmt, MAX_NIGHTS, seoulToday } from '@/lib/format'
 import './Calendar.css'
 
 /* prototype calendar() / monthHTML() 이식. 오늘 이전(오늘 포함)은 선택할 수 없다.
@@ -13,11 +13,8 @@ export interface DateRange {
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-function today() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d
-}
+/** 서울 기준 오늘 — 서버는 출발일을 "서울 기준 내일 이후"로만 받는다 */
+const today = seoulToday
 
 /** prototype pickDay(): 시작 → 끝 순서로 고르고, 시작보다 이른 날을 누르면 시작을 옮긴다 */
 function pick({ start, end }: DateRange, d: Date): DateRange {
@@ -35,8 +32,13 @@ interface Props {
 
 export default function Calendar({ value, onChange, months = 1 }: Props) {
   const t = today()
-  // 20일 이후면 다음 달부터 보여준다
-  const [base, setBase] = useState(() => new Date(t.getFullYear(), t.getMonth() + (t.getDate() > 20 ? 1 : 0), 1))
+  // 이번 달부터 보여준다 (선택한 출발일이 있으면 그 달)
+  const [base, setBase] = useState(() => {
+    const d = value.start ?? t
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+  // 출발일만 고른 상태면 최대 박수를 넘는 도착일은 막는다
+  const last = value.start && !value.end ? addDays(value.start, MAX_NIGHTS) : null
   const atMin = base.getFullYear() === t.getFullYear() && base.getMonth() === t.getMonth()
   const { start, end } = value
 
@@ -88,7 +90,7 @@ export default function Calendar({ value, onChange, months = 1 }: Props) {
                     <button
                       key={k}
                       className={cls.join(' ') || undefined}
-                      disabled={dt <= t}
+                      disabled={dt <= t || (last !== null && dt > last)}
                       aria-label={fmt(dt)}
                       aria-pressed={cls.includes('s') || cls.includes('e')}
                       onClick={() => onChange(pick(value, dt))}

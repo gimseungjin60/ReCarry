@@ -30,7 +30,10 @@ public class CookieTokenResolver implements BearerTokenResolver {
 		String method = req.getMethod();
 		if (HttpMethod.GET.matches(method) && (path.equals("/api/carriers") || path.startsWith("/api/carriers/"))) return true;
 		if (HttpMethod.GET.matches(method) && (path.equals("/api/auth/session") || path.equals("/api/health"))) return true;
+		// 비밀번호 찾기 경로도 — 비밀번호를 바꿔 무효가 된 쿠키가 남아 있어도 막히지 않게
 		return HttpMethod.POST.matches(method)
-			&& (path.equals("/api/auth/login") || path.equals("/api/auth/signup") || path.equals("/api/auth/logout"));
+			&& (path.equals("/api/auth/login") || path.equals("/api/auth/signup") || path.equals("/api/auth/logout")
+				|| path.equals("/api/auth/password-reset/request") || path.equals("/api/auth/password-reset/confirm")
+				|| path.equals("/api/auth/find-email"));
 	}
 }

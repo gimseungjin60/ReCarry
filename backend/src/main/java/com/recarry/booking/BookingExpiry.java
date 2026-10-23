@@ -3,7 +3,6 @@ package com.recarry.booking;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +34,7 @@ public class BookingExpiry {
 		this.bookings = bookings;
 		this.clock = clock;
 		this.ttl = Duration.ofDays(props.booking().requestExpiryDays());
-		LocalDate from = props.booking().requestExpiryFrom();
-		this.appliesFrom = from.atStartOfDay(props.booking().zone()).toInstant();
+		this.appliesFrom = props.booking().expiryAppliesFrom();
 	}
 
 	@EventListener(ApplicationReadyEvent.class)

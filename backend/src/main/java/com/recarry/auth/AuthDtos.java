@@ -16,7 +16,8 @@ public final class AuthDtos {
 	private AuthDtos() {}
 
 	/** 휴대폰 번호: 숫자·하이픈·공백·+ 만, 9~20자 */
-	public static final String PHONE = "^[0-9+\\- ]{9,20}$";
+	// 숫자가 9개 이상이어야 한다 ("---------" 같은 값 거절)
+	public static final String PHONE = "^(?=(?:[^0-9]*[0-9]){9})[0-9+\\- ]{9,20}$";
 
 	/** 비밀번호: 영문과 숫자 포함 (길이 8~72 는 따로 — BCrypt 는 72바이트까지만 쓴다) */
 	public static final String PASSWORD = "^(?=.*[A-Za-z])(?=.*\\d).+$";

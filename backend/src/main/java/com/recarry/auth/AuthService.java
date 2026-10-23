@@ -71,13 +71,13 @@ public class AuthService {
 	}
 
 	@Transactional(readOnly = true)
-	public Session login(LoginRequest req, String clientIp) {
+	public Session login(LoginRequest req) {
 		String email = normalizeEmail(req.email());
-		limiter.checkAllowed(email, clientIp);
+		limiter.checkAllowed(email);
 		User user = users.findByEmail(email).orElse(null);
 		String hash = user != null ? user.getPasswordHash() : dummyHash;
 		if (!encoder.matches(req.password(), hash) || user == null) {
-			limiter.recordFailure(email, clientIp);
+			limiter.recordFailure(email);
 			throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "이메일 또는 비밀번호가 올바르지 않습니다.");
 		}
 		limiter.recordSuccess(email);

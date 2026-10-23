@@ -90,7 +90,7 @@ export function MyAccount() {
 
   return (
     <div className="wrap acct-pg">
-      <div className="crumb" style={{ padding: 0 }}>
+      <div className="crumb keep">
         <Link to="/mypage">My page</Link>
         <span>/</span>
         <span style={{ color: 'var(--ink)' }}>내 계정</span>
@@ -162,7 +162,7 @@ export function MyAccount() {
           if (!confirmBye) throw new ApiError(400, 'CONFIRM', '안내를 확인하고 체크해주세요.')
           await api('/api/users/me/withdraw', { method: 'POST', body: { password: byePw } })
           // 보호된 화면을 먼저 떠난다 — 반대 순서면 로그인 화면으로 튕긴다
-          navigate('/', { replace: true })
+          navigate('/login', { replace: true, state: { notice: '탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.' } })
           replaceUser(null)
         }}
       >

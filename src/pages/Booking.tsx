@@ -11,7 +11,7 @@ import ConfirmStep from '@/booking/steps/ConfirmStep'
 import { DEFAULT_SIZE, isCarrierSize } from '@/data/carriers'
 import type { BookingStep } from '@/data/process'
 import type { Availability, Booking as BookingResult, CarrierSize } from '@/data/types'
-import { nights, priceFor, stayLabel, won, ymd } from '@/lib/format'
+import { isPhone, nights, priceFor, seoulToday, stayLabel, won, ymd } from '@/lib/format'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { invalidateCatalog, useCatalog } from '@/lib/catalog'
@@ -20,7 +20,7 @@ import { invalidateCatalog, useCatalog } from '@/lib/catalog'
    Product 에서 사이즈·날짜·보던 Carrier ID 를 받아 오며, 날짜가 있으면 prototype 처럼 Step 02 부터 시작한다.
    확정하면 POST /api/bookings — 금액·재고·날짜는 서버가 다시 검증한다. */
 
-const NEXT_LABEL = ['캐리어 선택', '배송 정보 입력', '예약 확인', '예약 확정']
+const NEXT_LABEL = ['캐리어 선택', '배송 정보 입력', '예약 확인', '예약 요청하기']
 
 interface FromProduct {
   size?: string
@@ -29,11 +29,13 @@ interface FromProduct {
   end?: unknown
 }
 
-const asDate = (v: unknown) => (v instanceof Date ? v : null)
+/** 넘겨받은 날짜는 아직 유효할 때만 쓴다 (오래된 탭을 복원하면 지난 날짜일 수 있다) */
+const asDate = (v: unknown) => (v instanceof Date && v > seoulToday() ? v : null)
 
 export default function Booking() {
   const navigate = useNavigate()
-  const from = (useLocation().state ?? {}) as FromProduct
+  const location = useLocation()
+  const from = (location.state ?? {}) as FromProduct
   const { user } = useAuth()
   const catalog = useCatalog()
 
@@ -85,7 +87,8 @@ export default function Booking() {
       return '선택한 기간에 예약할 수 있는 캐리어가 없습니다. 다른 사이즈를 선택해주세요.'
     if (step === 3 && (!form.name.trim() || !form.phone.trim() || !form.addr.trim()))
       return '받는 분, 휴대폰 번호, 주소를 입력해주세요.'
-    if (step === 4 && !agree) return '프로토타입 예약임을 확인해주세요.'
+    if (step === 3 && !isPhone(form.phone)) return '휴대폰 번호 형식을 확인해주세요. (예: 010-1234-5678)'
+    if (step === 4 && !agree) return '예약 내용과 대여 정책을 확인해주세요.'
     return ''
   }
 
@@ -123,7 +126,8 @@ export default function Booking() {
       navigate('/booking/complete', { replace: true, state: booking })
     } catch (x) {
       const ae = x instanceof ApiError ? x : null
-      if (ae?.status === 401) return navigate('/login', { state: { from: { pathname: '/booking' } } })
+      // 세션이 끝났으면 다시 로그인한 뒤 같은 날짜·사이즈로 돌아온다
+      if (ae?.status === 401) return navigate('/login', { state: { from: { pathname: '/booking', state: location.state } } })
       // 요금이 바뀌었으면 카탈로그를 다시 받아 화면 금액을 서버 금액에 맞춘다 (다시 누르면 새 금액으로 요청)
       if (ae?.code === 'PRICE_MISMATCH') {
         invalidateCatalog()
@@ -221,7 +225,7 @@ export default function Booking() {
       <div className="bk-bar">
         <div className="tt">
           <b>{n ? won(priceFor(carrier, n)) : won(carrier.price) + '~'}</b>
-          {carrier.name}
+          대여 요금 · {carrier.name}
           {n > 0 && ` · ${stayLabel(n)}`}
         </div>
         {step > 1 && (

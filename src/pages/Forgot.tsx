@@ -89,7 +89,7 @@ function ResetByEmail() {
       })}
     >
       <p className="small" role="status">
-        {email} 이 가입된 이메일이면 인증 코드(6자리)를 보냈습니다. 15분 안에 입력해주세요. 메일이 없다면 스팸함을 확인하거나{' '}
+        {email} 로 가입된 계정이 있으면 인증 코드(6자리)를 보냈습니다. 15분 안에 입력해주세요. 메일이 없다면 스팸함을 확인하거나{' '}
         <button type="button" className="link" onClick={() => setSent(false)}>
           다시 요청
         </button>

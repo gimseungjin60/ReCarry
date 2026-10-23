@@ -66,9 +66,14 @@ public class CarrierAdminService {
 
 	public CarrierResponse update(Long adminId, Long id, CarrierUpdateRequest req) {
 		Carrier c = find(id);
-		audit.record(adminId, "CARRIER_UPDATE", c.getCode(), "등급 " + c.getGrade() + " → " + req.grade()
-			+ (Boolean.TRUE.equals(req.featured()) && !c.isFeatured() ? " · 대표 지정" : "")
-			+ (Boolean.FALSE.equals(req.featured()) && c.isFeatured() ? " · 대표 해제" : ""));
+		// 바뀐 항목만 기록한다
+		java.util.List<String> changes = new java.util.ArrayList<>();
+		if (!c.getGrade().equals(req.grade())) changes.add("등급 " + c.getGrade() + " → " + req.grade());
+		if (!c.getCollectedFrom().equals(req.collectedFrom().trim())) changes.add("입고처 " + c.getCollectedFrom() + " → " + req.collectedFrom().trim());
+		if (!c.getRepairSummary().equals(blankIfNull(req.repairSummary()))) changes.add("수리 요약 변경");
+		if (Boolean.TRUE.equals(req.featured()) && !c.isFeatured()) changes.add("대표 지정");
+		if (Boolean.FALSE.equals(req.featured()) && c.isFeatured()) changes.add("대표 해제");
+		audit.record(adminId, "CARRIER_UPDATE", c.getCode(), changes.isEmpty() ? "변경 없음" : String.join(" · ", changes));
 		c.edit(req.grade(), req.collectedFrom().trim(), blankIfNull(req.repairSummary()));
 		if (Boolean.TRUE.equals(req.featured()) && !c.isFeatured()) makeFeatured(c);
 		else if (Boolean.FALSE.equals(req.featured())) c.setFeatured(false);
@@ -99,6 +104,10 @@ public class CarrierAdminService {
 		}
 		if (seen.size() != InspectionCheck.Item.values().length) {
 			throw ApiException.badRequest("INVALID_INSPECTION", "모든 검수 항목의 결과를 입력해주세요.");
+		}
+		// 재점검(불통과)은 무엇이 문제인지 남겨야 한다 — 상품 화면에 그대로 보인다
+		if (req.checks().stream().anyMatch(r -> !r.passed() && blankIfNull(r.note()).isEmpty())) {
+			throw ApiException.badRequest("INVALID_INSPECTION", "재점검 항목에는 메모를 남겨주세요.");
 		}
 		Carrier c = find(id);
 		long passed = req.checks().stream().filter(CheckRequest::passed).count();

@@ -537,6 +537,10 @@ class ApiIntegrationTest {
 			.isEqualTo("INVALID_INSPECTION");
 		assertThat(call("POST", insp, admin, java.util.Map.of("inspectedAt", today.plusDays(1).toString(), "checks", checks)).code())
 			.isEqualTo("INVALID_DATE");
+		// 재점검(불통과)에는 메모가 있어야 한다
+		List<java.util.Map<String, Object>> noNote = new ArrayList<>(checks.subList(0, 4));
+		noNote.add(java.util.Map.of("item", "ZIPPER", "passed", false));
+		assertThat(call("POST", insp, admin, java.util.Map.of("inspectedAt", today.toString(), "checks", noNote)).code()).isEqualTo("INVALID_INSPECTION");
 		Res inspected = call("POST", insp, admin, java.util.Map.of("inspectedAt", today.toString(), "checks", checks));
 		assertThat(inspected.status()).isEqualTo(200);
 		assertThat(inspected.body().get("inspectedAt").asString()).isEqualTo(today.toString());
@@ -597,6 +601,11 @@ class ApiIntegrationTest {
 			assertThat(avail.body().get(2).get("totalPrice").asInt()).isEqualTo(30000);
 
 			changed.put("price", -1);
+			assertThat(call("PATCH", "/api/admin/carrier-models/28", admin, changed).status()).isEqualTo(400);
+			// 0원(가격을 지운 실수)과 비현실적으로 큰 값은 거절 — 보증금 계산 오버플로 방지
+			changed.put("price", 0);
+			assertThat(call("PATCH", "/api/admin/carrier-models/28", admin, changed).status()).isEqualTo(400);
+			changed.put("price", 2_000_000_000);
 			assertThat(call("PATCH", "/api/admin/carrier-models/28", admin, changed).status()).isEqualTo(400);
 			assertThat(call("PATCH", "/api/admin/carrier-models/99", admin, body).status()).isEqualTo(404);
 		} finally {
@@ -743,7 +752,9 @@ class ApiIntegrationTest {
 
 	// ------------------------------------------------------------------ 비밀번호 찾기
 
-	String codeIn(String email) {
+	/** 메일은 커밋 뒤 백그라운드로 가므로 잠시 기다린다 */
+	String codeIn(String email) throws InterruptedException {
+		for (int i = 0; i < 50 && !mails.lastBody.containsKey(email); i++) Thread.sleep(100);
 		var m = java.util.regex.Pattern.compile("([0-9]{6})").matcher(mails.lastBody.get(email));
 		assertThat(m.find()).isTrue();
 		return m.group(1);
@@ -762,6 +773,7 @@ class ApiIntegrationTest {
 
 		assertThat(call("POST", "/api/auth/password-reset/request", null, java.util.Map.of("email", email.toUpperCase())).status()).isEqualTo(204);
 		String first = codeIn(email);
+		mails.lastBody.remove(email);
 		// 다시 요청하면 이전 코드는 쓸 수 없다
 		call("POST", "/api/auth/password-reset/request", null, java.util.Map.of("email", email));
 		String code = codeIn(email);
@@ -812,6 +824,9 @@ class ApiIntegrationTest {
 		assertThat(found.body().get("emails").get(0).asString()).isEqualTo("fi***@test.recarry");
 		Res none = call("POST", "/api/auth/find-email", null, java.util.Map.of("name", "다른이름", "phone", phone));
 		assertThat(none.body().get("emails").size()).isZero();
+		// 숫자가 없는 번호는 형식 오류 — 휴대폰 번호가 비어 있는 계정(관리자 bootstrap)을 찾지 못하게
+		assertThat(call("POST", "/api/auth/find-email", null, java.util.Map.of("name", "관리자", "phone", "---------")).code())
+			.isEqualTo("VALIDATION_FAILED");
 	}
 
 	@Test

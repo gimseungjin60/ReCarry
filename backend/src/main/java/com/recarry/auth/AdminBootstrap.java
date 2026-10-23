@@ -16,7 +16,7 @@ import com.recarry.user.UserRepository;
 
 /**
  * ADMIN_EMAIL + ADMIN_PASSWORD 가 모두 설정돼 있으면 기동 시 관리자를 만든다.
- * 이미 있는 계정이면 권한만 ADMIN 으로 올리고 비밀번호는 바꾸지 않는다.
+ * 이미 있는 계정이면 ADMIN_PASSWORD 가 그 계정 비밀번호와 같을 때만 권한을 올린다 (비밀번호는 바꾸지 않는다).
  * 비밀번호는 코드에도, 로그에도 남기지 않는다.
  */
 @Component
@@ -43,9 +43,13 @@ public class AdminBootstrap implements ApplicationRunner {
 
 		String email = AuthService.normalizeEmail(admin.email());
 		users.findByEmail(email).ifPresentOrElse(u -> {
-			if (u.getRole() != Role.ADMIN) {
+			if (u.getRole() == Role.ADMIN) return;
+			// 이메일 인증이 없으므로, 누군가 그 주소로 먼저 가입해 두었을 수 있다 — 비밀번호가 맞을 때만 올린다
+			if (encoder.matches(admin.password(), u.getPasswordHash())) {
 				u.promoteToAdmin();
 				log.info("promoted existing user to ADMIN: {}", email);
+			} else {
+				log.warn("ADMIN_EMAIL belongs to an existing account with a different password — not promoted: {}", email);
 			}
 		}, () -> {
 			users.save(new User(email, encoder.encode(admin.password()), "관리자", "", Role.ADMIN));

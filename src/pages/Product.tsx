@@ -112,7 +112,9 @@ export default function Product() {
           <ProductGallery carrier={p} />
 
           <aside className="pd-panel">
-            <p className="mono muted">{p.id} · 이용 가능</p>
+            <p className="mono muted">
+              {p.id} · {p.available > 0 ? '이용 가능' : '지금은 예약 가능한 캐리어가 없습니다'}
+            </p>
             <h1 className="d-m">{p.name}</h1>
             <div className="pd-meta">
               <span style={{ fontSize: 15 }}>{p.inch}</span>

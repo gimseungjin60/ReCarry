@@ -67,8 +67,9 @@ export function Consent({
 export function Login() {
   const { user, login } = useAuth()
   const location = useLocation()
-  // 비밀번호 재설정 뒤에 넘어온 안내
-  const notice = (location.state as { notice?: string } | null)?.notice
+  // 비밀번호 재설정 · 탈퇴 뒤에 넘어온 안내, 또는 로그인이 필요한 화면에서 온 경우
+  const st = location.state as { notice?: string; from?: unknown } | null
+  const notice = st?.notice ?? (st?.from ? '로그인하면 하던 화면으로 바로 돌아갑니다.' : undefined)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')

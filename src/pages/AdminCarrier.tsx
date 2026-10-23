@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Button from '@/components/Button'
@@ -43,6 +43,7 @@ export function CarrierCreate() {
     setErr('')
     try {
       const c = await api<ApiCarrier>('/api/admin/carriers', { method: 'POST', body: form })
+      invalidateCatalog()
       navigate(`/admin/carriers/${c.code}`)
     } catch (x) {
       setErr(errorText(x))
@@ -145,8 +146,11 @@ export function AdminCarrier() {
   }, [code])
   useEffect(load, [load])
 
-  /** 변경 요청 → 응답(갱신된 캐리어)으로 화면을 바꾼다 */
+  /** 변경 요청 → 응답(갱신된 캐리어)으로 화면을 바꾼다. 처리 중에는 다시 보내지 않는다 (두 번 눌러 중복 기록 방지) */
+  const busy = useRef(false)
   const run = async (label: string, req: () => Promise<ApiCarrier>) => {
+    if (busy.current) return false
+    busy.current = true
     setErr('')
     setMsg('')
     try {
@@ -157,12 +161,14 @@ export function AdminCarrier() {
     } catch (x) {
       setErr(errorText(x))
       return false
+    } finally {
+      busy.current = false
     }
   }
 
   return (
     <div className="wrap acct-pg">
-      <div className="crumb" style={{ padding: 0 }}>
+      <div className="crumb keep">
         <Link to="/admin">Admin</Link>
         <span>/</span>
         <span style={{ color: 'var(--ink)' }}>캐리어</span>
@@ -295,6 +301,7 @@ function InspectionSection({ carrier, run }: { carrier: ApiCarrier; run: Run }) 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (rows.some((r) => !r.result)) return setErr('모든 항목의 결과를 선택해주세요.')
+    if (rows.some((r) => r.result === 'fail' && !r.note.trim())) return setErr('재점검 항목에는 메모를 남겨주세요.')
     setErr('')
     run('검수 결과를 저장했습니다.', () =>
       api(`/api/admin/carriers/${carrier.id}/inspection`, {
@@ -388,8 +395,10 @@ function EventsSection({ carrier, run }: { carrier: ApiCarrier; run: Run }) {
     if (ok) setForm(empty)
   }
 
-  const remove = (id: number) =>
+  const remove = (id: number) => {
+    if (!window.confirm('이 Story 기록을 삭제할까요? 되돌릴 수 없습니다.')) return
     run('기록을 삭제했습니다.', () => api(`/api/admin/carriers/${carrier.id}/events/${id}`, { method: 'DELETE' }))
+  }
 
   return (
     <section className="adm-sec" aria-labelledby="c-events">
@@ -522,8 +531,15 @@ function ModelForm({ model, onSaved }: { model: ApiCarrierModel; onSaved: () => 
   })
   const [err, setErr] = useState('')
 
+  const [saving, setSaving] = useState(false)
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
+    // 빈 칸이 0원으로 저장되지 않게 — 숫자만, 기본 요금은 1원 이상
+    if (!/^[0-9]+$/.test(form.price) || Number(form.price) <= 0) return setErr('기본 요금을 1원 이상 숫자로 입력해주세요.')
+    if (!/^[0-9]+$/.test(form.extraNightPrice)) return setErr('1박 추가 요금을 숫자로 입력해주세요.')
+    if (saving) return
+    setSaving(true)
     setErr('')
     try {
       await api(`/api/admin/carrier-models/${model.size}`, {
@@ -533,6 +549,8 @@ function ModelForm({ model, onSaved }: { model: ApiCarrierModel; onSaved: () => 
       onSaved()
     } catch (x) {
       setErr(errorText(x))
+    } finally {
+      setSaving(false)
     }
   }
 
