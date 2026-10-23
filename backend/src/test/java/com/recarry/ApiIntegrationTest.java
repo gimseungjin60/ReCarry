@@ -829,6 +829,60 @@ class ApiIntegrationTest {
 			.isEqualTo("VALIDATION_FAILED");
 	}
 
+	// ------------------------------------------------------------------ 관리자 2단계 인증 · 접속기록
+
+	@Test
+	void totp_matches_rfc6238_vectors() {
+		String secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";   // ASCII "12345678901234567890"
+		assertThat(com.recarry.auth.Totp.code(secret, com.recarry.auth.Totp.step(59))).isEqualTo("287082");
+		assertThat(com.recarry.auth.Totp.code(secret, com.recarry.auth.Totp.step(1111111109))).isEqualTo("081804");
+	}
+
+	@Test
+	void admin_two_factor_login() throws Exception {
+		String admin = adminToken();
+		JsonNode setup = call("POST", "/api/admin/2fa/setup", admin, null).body();
+		String secret = setup.get("secret").asString();
+		assertThat(setup.get("uri").asString()).startsWith("otpauth://totp/");
+		long now = com.recarry.auth.Totp.step(java.time.Instant.now().getEpochSecond());
+		assertThat(call("POST", "/api/admin/2fa/enable", admin, java.util.Map.of("code", "000000")).code()).isIn("INVALID_OTP", null);
+		String code = com.recarry.auth.Totp.code(secret, now);
+		assertThat(call("POST", "/api/admin/2fa/enable", admin, java.util.Map.of("code", code)).status()).isEqualTo(204);
+		try {
+			// 비밀번호만으로는 로그인할 수 없다 (쿠키도 주지 않는다)
+			Res noOtp = call("POST", "/api/auth/login", null, java.util.Map.of("email", ADMIN_EMAIL, "password", ADMIN_PASSWORD));
+			assertThat(noOtp.status()).isEqualTo(401);
+			assertThat(noOtp.code()).isEqualTo("OTP_REQUIRED");
+			assertThat(noOtp.session()).isNull();
+			// 이미 쓴 코드(같은 시간 단계)는 다시 쓸 수 없다
+			assertThat(call("POST", "/api/auth/login", null,
+				java.util.Map.of("email", ADMIN_EMAIL, "password", ADMIN_PASSWORD, "otp", code)).code()).isEqualTo("INVALID_OTP");
+			String next = com.recarry.auth.Totp.code(secret, now + 1);   // 다음 30초 단계 (±1 허용)
+			Res ok = call("POST", "/api/auth/login", null, java.util.Map.of("email", ADMIN_EMAIL, "password", ADMIN_PASSWORD, "otp", next));
+			assertThat(ok.status()).isEqualTo(200);
+			admin = ok.session();
+		} finally {
+			// 다른 테스트가 비밀번호만으로 관리자 로그인하므로 끈다
+			jdbc.update("UPDATE users SET totp_enabled = false, totp_secret = null, totp_last_step = null WHERE email = ?", ADMIN_EMAIL);
+		}
+		// 사용자는 2단계 인증 설정에 닿지 못한다
+		assertThat(call("POST", "/api/admin/2fa/setup", signup(), null).status()).isEqualTo(403);
+	}
+
+	@Test
+	void admin_viewing_customer_data_is_logged() throws Exception {
+		String admin = adminToken();
+		String user = signup();
+		String number = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
+		assertThat(call("GET", "/api/admin/bookings/" + number, admin, null).status()).isEqualTo(200);
+		JsonNode views = call("GET", "/api/admin/audit-logs?kind=VIEW", admin, null).body();
+		boolean found = false;
+		for (JsonNode l : views) if (l.get("action").asString().equals("BOOKING_VIEW") && l.get("target").asString().equals(number)) found = true;
+		assertThat(found).isTrue();
+		// 변경 기록 목록에는 조회가 섞이지 않는다
+		for (JsonNode l : call("GET", "/api/admin/audit-logs", admin, null).body()) assertThat(l.get("action").asString()).doesNotEndWith("_VIEW");
+	}
+
 	@Test
 	void role_change_takes_effect_on_existing_tokens() throws Exception {
 		String email = "role-" + UUID.randomUUID() + "@test.recarry";

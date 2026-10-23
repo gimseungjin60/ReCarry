@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
+import Button from '@/components/Button'
 import { Link } from 'react-router-dom'
 import { BOOKING_STATUS, CARRIER_EVENT, CARRIER_STATUS } from '@/data/status'
 import type { Booking } from '@/data/types'
@@ -85,6 +87,7 @@ interface Audit {
   action: string
   target: string
   detail: string
+  ip: string
 }
 
 const ACTION: Record<string, string> = {
@@ -96,6 +99,10 @@ const ACTION: Record<string, string> = {
   CARRIER_EVENT_DELETE: 'Story 삭제',
   MODEL_UPDATE: '상품 수정',
   BOOKING_STATUS: '예약 상태',
+  BOOKING_VIEW: '예약 상세 조회',
+  BOOKING_LIST_VIEW: '예약 목록 조회',
+  TOTP_ENABLE: '2단계 인증 켬',
+  TOTP_DISABLE: '2단계 인증 끔',
 }
 
 /** "REPAIR → AVAILABLE" 같은 상태 코드를 화면 문구로 */
@@ -104,25 +111,38 @@ const readable = (detail: string) => detail.replace(/\b[A-Z_]{4,}\b/g, (t) => LA
 
 export function AuditLog() {
   const [open, setOpen] = useState(false)
+  const [kind, setKind] = useState<'CHANGE' | 'VIEW'>('CHANGE')
   const [logs, setLogs] = useState<Audit[] | null>(null)
   const [err, setErr] = useState('')
 
   useEffect(() => {
     if (!open) return
-    api<Audit[]>('/api/admin/audit-logs')
+    setLogs(null)
+    api<Audit[]>(`/api/admin/audit-logs?kind=${kind}`)
       .then(setLogs)
       .catch((e) => setErr(errorText(e)))
-  }, [open])
+  }, [open, kind])
 
   return (
     <section className="adm-sec" aria-labelledby="adm-audit">
       <h2 className="t-title" id="adm-audit">
         변경 기록
       </h2>
-      <p className="small">관리자가 바꾼 캐리어·예약·상품 정보 (최근 100건). 자동 만료 취소는 예약의 취소 사유로 남습니다.</p>
-      <button type="button" className="link small" style={{ marginTop: 8 }} onClick={() => setOpen(!open)}>
-        {open ? '닫기' : '기록 보기'}
-      </button>
+      <p className="small">
+        관리자가 바꾼 정보와 고객 개인정보(예약 목록 · 상세)를 조회한 기록입니다 (최근 100건). 기록은 지우지 않고 1년 이상
+        보관합니다 — 개인정보 접속기록 보관 의무.
+      </p>
+      <div className="adm-actions" style={{ marginTop: 8, alignItems: 'center' }}>
+        <button type="button" className="link small" onClick={() => setOpen(!open)}>
+          {open ? '닫기' : '기록 보기'}
+        </button>
+        {open && (
+          <select aria-label="기록 종류" value={kind} onChange={(e) => setKind(e.target.value as 'CHANGE' | 'VIEW')}>
+            <option value="CHANGE">변경 기록</option>
+            <option value="VIEW">고객정보 조회 기록</option>
+          </select>
+        )}
+      </div>
       <p className="err" role="alert">
         {err}
       </p>
@@ -136,6 +156,7 @@ export function AuditLog() {
                 <th>작업</th>
                 <th>대상</th>
                 <th>내용</th>
+                <th>접속지</th>
               </tr>
             </thead>
             <tbody>
@@ -146,12 +167,121 @@ export function AuditLog() {
                   <td>{ACTION[l.action] ?? l.action}</td>
                   <td className="mono">{l.target}</td>
                   <td style={{ whiteSpace: 'normal' }}>{readable(l.detail)}</td>
+                  <td className="mono">{l.ip || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {logs.length === 0 && <p className="small">기록이 없습니다.</p>}
         </div>
+      )}
+    </section>
+  )
+}
+
+/* 관리자 2단계 인증 — Google Authenticator 같은 OTP 앱에 설정 키를 등록한다.
+   QR 코드 대신 키를 직접 입력하는 방식 (라이브러리 없이). 휴대폰을 잃어버리면 운영자가 DB 에서 끈다. */
+export function TwoFactor() {
+  const [enabled, setEnabled] = useState<boolean | null>(null)
+  const [setup, setSetup] = useState<{ secret: string; uri: string } | null>(null)
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const load = useCallback(
+    () => api<{ enabled: boolean }>('/api/admin/2fa').then((s) => setEnabled(s.enabled)).catch((e) => setErr(errorText(e))),
+    [],
+  )
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const act = async (fn: () => Promise<void>, done: string) => {
+    if (busy) return
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    try {
+      await fn()
+      setMsg(done)
+      setCode('')
+    } catch (x) {
+      setErr(errorText(x))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    if (enabled) {
+      if (!window.confirm('2단계 인증을 끌까요? 비밀번호만으로 관리자 로그인이 가능해집니다.')) return
+      act(async () => {
+        await api('/api/admin/2fa/disable', { method: 'POST', body: { code } })
+        setEnabled(false)
+      }, '2단계 인증을 껐습니다.')
+    } else {
+      act(async () => {
+        await api('/api/admin/2fa/enable', { method: 'POST', body: { code } })
+        setEnabled(true)
+        setSetup(null)
+      }, '2단계 인증을 켰습니다. 다음 로그인부터 인증 코드가 필요합니다.')
+    }
+  }
+
+  return (
+    <section className="adm-sec" aria-labelledby="adm-2fa">
+      <h2 className="t-title" id="adm-2fa">
+        2단계 인증
+      </h2>
+      <p className="small">
+        {enabled === null
+          ? '불러오는 중…'
+          : enabled
+            ? '켜져 있습니다. 로그인할 때 OTP 앱의 6자리 코드가 필요합니다.'
+            : '꺼져 있습니다. 관리자 계정은 고객 정보를 볼 수 있으므로 켜두기를 권합니다.'}
+      </p>
+      <p className="err" role="alert">
+        {err}
+      </p>
+      <p className="small" role="status" style={{ color: 'var(--brand)' }}>
+        {msg}
+      </p>
+      {enabled === false && !setup && (
+        <Button small onClick={() => act(async () => setSetup(await api('/api/admin/2fa/setup', { method: 'POST' })), '')}>
+          설정 시작
+        </Button>
+      )}
+      {setup && (
+        <div className="note" style={{ flexDirection: 'column', maxWidth: 560 }}>
+          <span>1. OTP 앱(Google Authenticator 등)에서 "설정 키 입력"을 고르고 아래 키를 넣으세요. 계정 이름은 자유입니다.</span>
+          <b className="mono" style={{ fontSize: 16, letterSpacing: '.08em' }}>{setup.secret.match(/.{1,4}/g)?.join(' ')}</b>
+          <span>
+            휴대폰에서 이 화면을 보고 있다면{' '}
+            <a className="link" href={setup.uri}>
+              OTP 앱으로 바로 열기
+            </a>
+          </span>
+          <span>2. 앱에 나온 6자리 코드를 아래에 입력하면 켜집니다.</span>
+        </div>
+      )}
+      {(setup || enabled) && (
+        <form className="adm-form" style={{ maxWidth: 360 }} onSubmit={submit} noValidate>
+          <label className="field">
+            <span className="l">{enabled ? '끄려면 현재 코드 입력' : '앱의 6자리 코드'}</span>
+            <input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
+            />
+          </label>
+          <Button small type="submit" variant={enabled ? 'secondary' : 'primary'} disabled={busy}>
+            {enabled ? '2단계 인증 끄기' : '확인하고 켜기'}
+          </Button>
+        </form>
       )}
     </section>
   )

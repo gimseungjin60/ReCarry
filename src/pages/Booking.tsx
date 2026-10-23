@@ -15,6 +15,7 @@ import { isPhone, nights, priceFor, seoulToday, stayLabel, won, ymd } from '@/li
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { invalidateCatalog, useCatalog } from '@/lib/catalog'
+import { useTitle } from '@/lib/useTitle'
 
 /* PRD §4 Booking — 로그인한 사용자만 들어온다 (App 의 RequireAuth).
    Product 에서 사이즈·날짜·보던 Carrier ID 를 받아 오며, 날짜가 있으면 prototype 처럼 Step 02 부터 시작한다.
@@ -33,6 +34,7 @@ interface FromProduct {
 const asDate = (v: unknown) => (v instanceof Date && v > seoulToday() ? v : null)
 
 export default function Booking() {
+  useTitle('예약')
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state ?? {}) as FromProduct

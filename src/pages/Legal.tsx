@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import { BUSINESS_INFO, LEGAL, LEGAL_EFFECTIVE } from '@/data/legal'
 import type { LegalKey } from '@/data/legal'
+import { useTitle } from '@/lib/useTitle'
 
 /* 이용약관 · 개인정보 처리방침 · 대여 정책. 내용은 data/legal.ts 한 곳에 있다. */
 
 export default function Legal({ doc }: { doc: LegalKey }) {
+  useTitle(LEGAL[doc].title)
   const d = LEGAL[doc]
   return (
     <div className="wrap legal-pg">

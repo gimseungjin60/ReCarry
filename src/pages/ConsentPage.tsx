@@ -7,6 +7,7 @@ import type { User } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { Consent } from '@/pages/Auth'
+import { useTitle } from '@/lib/useTitle'
 
 /* 약관·개인정보 처리방침이 바뀐 뒤 처음 들어온 회원의 재동의. RequireAuth 가 이리로 보낸다. */
 
@@ -16,6 +17,7 @@ interface From {
 }
 
 export default function ConsentPage() {
+  useTitle('약관 동의')
   const { user, loading, replaceUser } = useAuth()
   const navigate = useNavigate()
   const from = (useLocation().state as { from?: From } | null)?.from

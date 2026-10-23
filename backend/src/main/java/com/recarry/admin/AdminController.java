@@ -49,10 +49,10 @@ public class AdminController {
 		this.audit = audit;
 	}
 
-	/** 최근 관리자 변경 기록 (최신순 100건) */
+	/** 최근 관리자 기록 (최신순 100건). kind=VIEW 면 고객정보 조회 기록 */
 	@GetMapping("/audit-logs")
-	public List<AuditResponse> auditLogs() {
-		return audit.recent(100);
+	public List<AuditResponse> auditLogs(@RequestParam(defaultValue = "CHANGE") AuditService.Kind kind) {
+		return audit.recent(100, kind);
 	}
 
 	// ---------------------------------------------------------------- carriers
@@ -107,14 +107,19 @@ public class AdminController {
 
 	// ---------------------------------------------------------------- bookings
 
+	/** 예약 목록에는 고객 이름 · 연락처 · 주소가 있다 — 조회 기록을 남긴다 */
 	@GetMapping("/bookings")
-	public List<BookingResponse> bookings(@RequestParam(required = false) BookingStatus status) {
-		return bookings.listAll(status);
+	public List<BookingResponse> bookings(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) BookingStatus status) {
+		List<BookingResponse> list = bookings.listAll(status);
+		audit.recordView(CurrentUser.id(jwt), "BOOKING_LIST", (status == null ? "전체" : status.name()) + " " + list.size() + "건");
+		return list;
 	}
 
 	@GetMapping("/bookings/{bookingNumber}")
-	public BookingResponse booking(@PathVariable String bookingNumber) {
-		return bookings.getAny(bookingNumber);
+	public BookingResponse booking(@AuthenticationPrincipal Jwt jwt, @PathVariable String bookingNumber) {
+		BookingResponse b = bookings.getAny(bookingNumber);
+		audit.recordView(CurrentUser.id(jwt), "BOOKING", bookingNumber);
+		return b;
 	}
 
 	@PatchMapping("/bookings/{bookingNumber}/status")

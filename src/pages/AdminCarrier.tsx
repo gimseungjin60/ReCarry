@@ -17,6 +17,7 @@ import type {
 import { api, ApiError } from '@/lib/api'
 import { invalidateCatalog } from '@/lib/catalog'
 import { fmt, parseYmd, ymd } from '@/lib/format'
+import { useTitle } from '@/lib/useTitle'
 
 /* 관리자 캐리어 관리 — 등록 · 상세(운영 상태 · 기본 정보 · 검수 결과 · Story 기록) · 사이즈 상품 수정.
    운영 정책(상태 전이 규칙, 세척·검수 버퍼 등)은 여기서 정하지 않는다. 검증은 backend 가 최종 판단한다. */
@@ -129,6 +130,7 @@ function CarrierInfoFields({ value, onChange }: { value: Info; onChange: (v: Par
 // ---------------------------------------------------------------- 상세
 
 export function AdminCarrier() {
+  useTitle('캐리어 관리')
   const { code = '' } = useParams()
   const [c, setC] = useState<ApiCarrier | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import BookingTicket from '@/components/BookingTicket'
 import { CarrierCreate, ModelEditor } from '@/pages/AdminCarrier'
-import { AuditLog, Schedule } from '@/pages/AdminOps'
+import { AuditLog, Schedule, TwoFactor } from '@/pages/AdminOps'
 import { BOOKING_NEXT, BOOKING_STATUS, CARRIER_OPERATIONAL, CARRIER_STATUS } from '@/data/status'
 import type { ApiCarrier, Booking, BookingStatus, CarrierSize, CarrierStatus } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
 import { invalidateCatalog } from '@/lib/catalog'
 import { won } from '@/lib/format'
+import { useTitle } from '@/lib/useTitle'
 
 /* 관리자 화면 — 재고 요약 · 캐리어 목록(→ 상세 · 등록) · 사이즈 상품 · 예약 목록 / 상태 변경 / 상세.
    RequireAuth admin 으로 감싸고, 서버도 /api/admin/** 를 ADMIN 만 통과시킨다. */
@@ -15,6 +16,7 @@ import { won } from '@/lib/format'
 const SIZES: CarrierSize[] = ['20', '24', '28']
 
 export function Admin() {
+  useTitle('운영 관리')
   const [carriers, setCarriers] = useState<ApiCarrier[] | null>(null)
   const [bookings, setBookings] = useState<Booking[] | null>(null)
   const [filter, setFilter] = useState<BookingStatus | ''>('')
@@ -238,11 +240,14 @@ export function Admin() {
       </section>
 
       <AuditLog />
+
+      <TwoFactor />
     </div>
   )
 }
 
 export function AdminBooking() {
+  useTitle('예약 상세 (관리)')
   const { bookingNumber } = useParams()
   const [b, setB] = useState<Booking | null>(null)
   const [err, setErr] = useState('')

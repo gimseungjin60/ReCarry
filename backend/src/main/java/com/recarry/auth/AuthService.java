@@ -70,7 +70,7 @@ public class AuthService {
 		return respond(user);
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional   // 2단계 인증: 사용한 OTP 단계를 기록한다
 	public Session login(LoginRequest req) {
 		String email = normalizeEmail(req.email());
 		limiter.checkAllowed(email);
@@ -79,6 +79,17 @@ public class AuthService {
 		if (!encoder.matches(req.password(), hash) || user == null) {
 			limiter.recordFailure(email);
 			throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "이메일 또는 비밀번호가 올바르지 않습니다.");
+		}
+		if (user.isTotpEnabled()) {
+			if (req.otp() == null || req.otp().isBlank()) {
+				throw new ApiException(HttpStatus.UNAUTHORIZED, "OTP_REQUIRED", "OTP 앱의 6자리 인증 코드를 입력해주세요.");
+			}
+			long step = Totp.verify(user.getTotpSecret(), req.otp().trim(), Totp.step(clock.instant().getEpochSecond()), user.getTotpLastStep());
+			if (step < 0) {
+				limiter.recordFailure(email);
+				throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_OTP", "인증 코드가 올바르지 않습니다.");
+			}
+			user.useTotp(step);
 		}
 		limiter.recordSuccess(email);
 		return respond(user);

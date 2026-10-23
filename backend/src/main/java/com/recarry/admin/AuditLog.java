@@ -32,17 +32,22 @@ public class AuditLog {
 	@Column(nullable = false, updatable = false)
 	private String detail;
 
+	/** 접속지 — 프록시 뒤라 참고용 (X-Forwarded-For 첫 값 또는 연결 주소) */
+	@Column(nullable = false, updatable = false)
+	private String ip;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
 	protected AuditLog() {}
 
-	AuditLog(Long adminId, String action, String target, String detail) {
+	AuditLog(Long adminId, String action, String target, String detail, String ip) {
 		this.adminId = adminId;
 		this.action = action;
-		this.target = target;
+		this.target = target.length() > 40 ? target.substring(0, 40) : target;
 		this.detail = detail.length() > 300 ? detail.substring(0, 300) : detail;
+		this.ip = ip.length() > 45 ? ip.substring(0, 45) : ip;
 	}
 
 	public Long getAdminId() { return adminId; }
@@ -50,4 +55,5 @@ public class AuditLog {
 	public String getTarget() { return target; }
 	public String getDetail() { return detail; }
 	public Instant getCreatedAt() { return createdAt; }
+	public String getIp() { return ip; }
 }

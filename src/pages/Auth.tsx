@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation } from 'react-router-dom'
 import Button from '@/components/Button'
 import { ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { useTitle } from '@/lib/useTitle'
 
 /* 로그인 / 회원가입. 같은 레이아웃이라 한 파일에 둔다.
    RequireAuth 가 넘긴 from 이 있으면 로그인 후 그 화면(과 state)으로 돌아간다. */
@@ -65,6 +66,7 @@ export function Consent({
 }
 
 export function Login() {
+  useTitle('로그인')
   const { user, login } = useAuth()
   const location = useLocation()
   // 비밀번호 재설정 · 탈퇴 뒤에 넘어온 안내, 또는 로그인이 필요한 화면에서 온 경우
@@ -72,6 +74,9 @@ export function Login() {
   const notice = st?.notice ?? (st?.from ? '로그인하면 하던 화면으로 바로 돌아갑니다.' : undefined)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  // 2단계 인증을 켠 관리자: 비밀번호가 맞으면 서버가 OTP_REQUIRED 로 코드를 요구한다
+  const [needOtp, setNeedOtp] = useState(false)
+  const [otp, setOtp] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -82,8 +87,13 @@ export function Login() {
     setBusy(true)
     setErr('')
     try {
-      await login(email, password)
+      await login(email, password, needOtp ? otp : undefined)
     } catch (x) {
+      if (x instanceof ApiError && x.code === 'OTP_REQUIRED') {
+        setNeedOtp(true)
+        setErr('')
+        return
+      }
       setErr(x instanceof ApiError ? x.message : '로그인하지 못했습니다.')
     } finally {
       setBusy(false)
@@ -111,6 +121,17 @@ export function Login() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        {needOtp && (
+          <Field
+            label="2단계 인증 코드 (OTP 앱의 6자리)"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            autoFocus
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+          />
+        )}
         <p className="err" role="alert">
           {err}
         </p>
@@ -133,6 +154,7 @@ export function Login() {
 }
 
 export function Signup() {
+  useTitle('회원가입')
   const { user, signup } = useAuth()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '', name: '', phone: '' })

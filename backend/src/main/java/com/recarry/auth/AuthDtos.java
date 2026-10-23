@@ -33,9 +33,11 @@ public final class AuthDtos {
 		@NotNull(message = "이용약관에 동의해주세요.") @AssertTrue(message = "이용약관에 동의해주세요.") Boolean agreeTerms,
 		@NotNull(message = "개인정보 수집·이용에 동의해주세요.") @AssertTrue(message = "개인정보 수집·이용에 동의해주세요.") Boolean agreePrivacy) {}
 
+	/** otp: 2단계 인증을 켠 관리자만 — 없으면 OTP_REQUIRED 로 다시 요청하게 한다 */
 	public record LoginRequest(
 		@NotBlank(message = "이메일을 입력해주세요.") @Size(max = 254) String email,
-		@NotBlank(message = "비밀번호를 입력해주세요.") @Size(max = 72) String password) {}
+		@NotBlank(message = "비밀번호를 입력해주세요.") @Size(max = 72) String password,
+		@Size(max = 8) String otp) {}
 
 	public record ResetRequest(
 		@NotBlank(message = "이메일을 입력해주세요.") @Email(message = "이메일 형식이 아닙니다.") @Size(max = 254) String email) {}

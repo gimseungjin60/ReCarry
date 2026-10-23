@@ -13,6 +13,7 @@ import { useCatalog } from '@/lib/catalog'
 import type { Carrier } from '@/data/types'
 import { fmt, nights, priceFor, stayLabel, won } from '@/lib/format'
 import { useReveal } from '@/lib/motion'
+import { useTitle } from '@/lib/useTitle'
 
 /* PRD §4 Product Detail — prototype productHTML() 구조 그대로. */
 
@@ -57,6 +58,7 @@ function DateBox({ carrier, range, setRange }: { carrier: Carrier; range: DateRa
 
 export default function Product() {
   const { size } = useParams()
+  useTitle(isCarrierSize(size) ? `RECARRY ${size}인치` : undefined)
   const navigate = useNavigate()
   // prototype 처럼 사이즈를 옮겨 다녀도 고른 날짜는 유지한다
   const [range, setRange] = useState<DateRange>({ start: null, end: null })

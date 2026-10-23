@@ -61,6 +61,17 @@ public class User {
 	@Column(name = "sessions_valid_after")
 	private Instant sessionsValidAfter;
 
+	/** 관리자 2단계 인증(TOTP) — 켜져 있으면 로그인에 OTP 코드가 필요하다 */
+	@Column(name = "totp_secret")
+	private String totpSecret;
+
+	@Column(name = "totp_enabled", nullable = false)
+	private boolean totpEnabled;
+
+	/** 마지막으로 받아들인 TOTP 시간 단계 — 같은 코드 재사용 방지 */
+	@Column(name = "totp_last_step")
+	private Long totpLastStep;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -125,6 +136,32 @@ public class User {
 		this.passwordHash = unusablePasswordHash;
 		this.deletedAt = now;
 		this.sessionsValidAfter = now;
+	}
+
+	public String getTotpSecret() { return totpSecret; }
+	public boolean isTotpEnabled() { return totpEnabled; }
+	public Long getTotpLastStep() { return totpLastStep; }
+
+	/** 새 secret 을 준비한다 (OTP 앱에 등록하고 코드를 확인하기 전까지는 켜지지 않는다) */
+	public void prepareTotp(String secret) {
+		this.totpSecret = secret;
+		this.totpEnabled = false;
+		this.totpLastStep = null;
+	}
+
+	public void enableTotp(long usedStep) {
+		this.totpEnabled = true;
+		this.totpLastStep = usedStep;
+	}
+
+	public void useTotp(long usedStep) {
+		this.totpLastStep = usedStep;
+	}
+
+	public void disableTotp() {
+		this.totpSecret = null;
+		this.totpEnabled = false;
+		this.totpLastStep = null;
 	}
 
 	public void promoteToAdmin() {

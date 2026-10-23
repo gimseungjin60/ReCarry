@@ -3,6 +3,7 @@ import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Button from '@/components/Button'
 import { api, ApiError } from '@/lib/api'
+import { useTitle } from '@/lib/useTitle'
 
 /* 비밀번호 찾기 — 이메일로 받은 6자리 코드로 재설정 · 이름 + 휴대폰 번호로 가입 이메일 찾기.
    가입 여부는 화면에 드러내지 않는다 (코드 요청은 항상 "보냈습니다"). */
@@ -144,6 +145,7 @@ function FindEmail() {
 }
 
 export default function Forgot() {
+  useTitle('비밀번호 찾기')
   const [tab, setTab] = useState<Tab>('reset')
   return (
     <div className="wrap auth-pg">

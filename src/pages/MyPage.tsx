@@ -7,10 +7,12 @@ import type { Booking } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { fmt, parseYmd, won } from '@/lib/format'
+import { useTitle } from '@/lib/useTitle'
 
 /* PRD 확장 — 최소 My Page. 회원 정보 · 예약 목록 · 예약 상세(취소). */
 
 export function MyPage() {
+  useTitle('마이페이지')
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [list, setList] = useState<Booking[] | null>(null)
@@ -116,6 +118,7 @@ export function MyPage() {
 }
 
 export function MyBooking() {
+  useTitle('예약 상세')
   const { bookingNumber } = useParams()
   const [b, setB] = useState<Booking | null>(null)
   const [err, setErr] = useState('')

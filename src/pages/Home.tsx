@@ -9,11 +9,13 @@ import Cta from '@/sections/home/Cta'
 import '@/sections/home.css'
 import { useReveal } from '@/lib/motion'
 import { useCatalog } from '@/lib/catalog'
+import { useTitle } from '@/lib/useTitle'
 
 /* Home — 짧게 5개 블록 (2026-10 개편, docs/DESIGN.md §Home).
    첫 화면에서 무엇을 · 얼마에 · 어떻게 받는지 답하고 바로 예약으로. id(#top #collection #how #story #faq)는 nav 앵커다. */
 
 export default function Home() {
+  useTitle(undefined)
   const { state } = useLocation()
   const navigate = useNavigate()
   // 카탈로그가 도착하면 새로 그려진 블록도 reveal 대상에 넣는다

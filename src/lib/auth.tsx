@@ -10,7 +10,8 @@ interface AuthState {
   user: User | null
   /** 세션을 확인하는 중 */
   loading: boolean
-  login: (email: string, password: string) => Promise<User>
+  /** otp: 2단계 인증을 켠 관리자만 (서버가 OTP_REQUIRED 로 알려준다) */
+  login: (email: string, password: string, otp?: string) => Promise<User>
   signup: (input: SignupInput) => Promise<User>
   logout: () => Promise<void>
   /** 서버가 바꾼 사용자 정보로 교체 (정보 수정) · null = 탈퇴로 세션이 끝남 */
@@ -54,8 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       logout,
       replaceUser: setUser,
-      login: (email, password) =>
-        api<AuthResponse>('/api/auth/login', { method: 'POST', body: { email, password } }).then((r) => {
+      login: (email, password, otp) =>
+        api<AuthResponse>('/api/auth/login', { method: 'POST', body: { email, password, otp } }).then((r) => {
           setUser(r.user)
           return r.user
         }),

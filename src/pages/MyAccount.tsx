@@ -5,6 +5,7 @@ import Button from '@/components/Button'
 import type { User } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { useTitle } from '@/lib/useTitle'
 
 /* 내 계정 — 정보 수정 · 비밀번호 변경 · 탈퇴. 이메일(로그인 ID)은 바꾸지 않는다. */
 
@@ -79,6 +80,7 @@ function Input({ label, ...rest }: { label: string } & InputHTMLAttributes<HTMLI
 }
 
 export function MyAccount() {
+  useTitle('내 계정')
   const { user, replaceUser } = useAuth()
   const navigate = useNavigate()
   const [profile, setProfile] = useState({ name: user?.name ?? '', phone: user?.phone ?? '' })

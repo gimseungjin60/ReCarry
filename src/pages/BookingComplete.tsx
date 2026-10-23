@@ -2,11 +2,13 @@ import { Navigate, useLocation } from 'react-router-dom'
 import Button from '@/components/Button'
 import BookingTicket from '@/components/BookingTicket'
 import type { Booking } from '@/data/types'
+import { useTitle } from '@/lib/useTitle'
 
 /* PRD §4 Complete — 예약번호 / 캐리어 / 이용 날짜 / 배송 정보 / 총 금액.
    Booking 이 POST /api/bookings 응답(서버에 저장된 예약)을 state 로 넘긴다. */
 
 export default function BookingComplete() {
+  useTitle('예약 요청 완료')
   const b = useLocation().state as Booking | null
 
   // 예약을 거치지 않고 직접 들어온 경우

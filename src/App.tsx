@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Home from '@/pages/Home'
@@ -14,6 +14,7 @@ import { AdminCarrier } from '@/pages/AdminCarrier'
 import Legal from '@/pages/Legal'
 import ConsentPage from '@/pages/ConsentPage'
 import Forgot from '@/pages/Forgot'
+import NotFound from '@/pages/NotFound'
 import RequireAuth from '@/components/RequireAuth'
 import { AuthProvider } from '@/lib/auth'
 
@@ -55,8 +56,8 @@ export default function App() {
             <Route path="/terms" element={<Legal doc="terms" />} />
             <Route path="/privacy" element={<Legal doc="privacy" />} />
             <Route path="/policy" element={<Legal doc="policy" />} />
-            {/* 없는 경로는 홈으로 */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* 없는 경로는 404 로 알린다 */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <Footer />
