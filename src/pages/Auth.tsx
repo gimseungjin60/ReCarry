@@ -181,7 +181,7 @@ export function Signup() {
         <Consent
           checked={agree.agreeTerms}
           onChange={(v) => setAgree({ ...agree, agreeTerms: v })}
-          label="[필수] 이용약관에 동의합니다."
+          label="[필수] 만 14세 이상이며, 이용약관에 동의합니다."
           error={fields.agreeTerms}
           href="/terms"
         >
@@ -199,7 +199,7 @@ export function Signup() {
           <br />
           이용 목적: 회원 식별, 로그인, 예약 접수·배송·회수 안내
           <br />
-          보유 기간: 탈퇴 시까지 (확정된 거래 기록은 전자상거래법에 따라 5년)
+          보유 기간: 탈퇴 시까지 (확정된 거래 기록은 전자상거래법에 따라 5년) · 서버가 국외(싱가포르 등)에 있어 국외 이전이 있습니다
         </Consent>
         <p className="err" role="alert">
           {err}

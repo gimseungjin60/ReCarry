@@ -198,8 +198,8 @@ class ApiIntegrationTest {
 			"name", "동의", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		assertThat(ok.status()).isEqualTo(201);
 		var row = jdbc.queryForMap("SELECT terms_version, privacy_version, agreed_at FROM users WHERE email = ?", email);
-		assertThat(row.get("terms_version")).isEqualTo("2026-10-20");
-		assertThat(row.get("privacy_version")).isEqualTo("2026-10-20");
+		assertThat(row.get("terms_version")).isEqualTo("2026-10-23");
+		assertThat(row.get("privacy_version")).isEqualTo("2026-10-23");
 		assertThat(row.get("agreed_at")).isNotNull();
 	}
 
@@ -708,7 +708,7 @@ class ApiIntegrationTest {
 		Res agreed = call("POST", "/api/users/me/consent", token, java.util.Map.of("agreeTerms", true, "agreePrivacy", true));
 		assertThat(agreed.status()).isEqualTo(200);
 		assertThat(agreed.body().get("consentRequired").asBoolean()).isFalse();
-		assertThat(jdbc.queryForObject("SELECT terms_version FROM users WHERE email = ?", String.class, email)).isEqualTo("2026-10-20");
+		assertThat(jdbc.queryForObject("SELECT terms_version FROM users WHERE email = ?", String.class, email)).isEqualTo("2026-10-23");
 		assertThat(call("POST", "/api/bookings", token, booking("24", null, window(3), null)).status()).isEqualTo(201);
 	}
 

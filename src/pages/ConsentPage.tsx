@@ -60,11 +60,11 @@ export default function ConsentPage() {
         <Consent
           checked={agree.agreeTerms}
           onChange={(v) => setAgree({ ...agree, agreeTerms: v })}
-          label="[필수] 이용약관에 동의합니다."
+          label="[필수] 만 14세 이상이며, 이용약관에 동의합니다."
           error={fields.agreeTerms}
           href="/terms"
         >
-          예약 요청 3일 자동 만료, 보증금(대여 요금의 30%), 취소·환불 규정이 추가되었습니다.
+          예약 요청 3일 자동 만료, 보증금(대여 요금의 30%), 취소·환불·회사 사정 취소 배상 기준이 추가되었습니다.
         </Consent>
         <Consent
           checked={agree.agreePrivacy}

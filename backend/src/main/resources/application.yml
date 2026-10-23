@@ -58,5 +58,5 @@ recarry:
     request-expiry-days: 3         # 확정되지 않은 예약 요청은 접수 3일 뒤 자동 취소
     request-expiry-from: 2026-10-20  # 정책 시행일 — 이전 요청은 자동 취소하지 않는다
   legal:                           # 가입 시 동의받는 문서 버전 (users 에 기록) = 화면 문서의 시행일. src/data/legal.ts 와 같이 바꾼다
-    terms-version: "2026-10-20"
-    privacy-version: "2026-10-20"
+    terms-version: "2026-10-23"
+    privacy-version: "2026-10-23"

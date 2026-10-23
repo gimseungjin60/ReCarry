@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { BUSINESS_INFO } from '@/data/legal'
 import { NAV_LINKS, PROTOTYPE_NOTICE } from '@/data/nav'
 import { useAnchorNav } from '@/lib/useAnchorNav'
 import './Footer.css'
@@ -52,6 +53,12 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* 전자상거래법 제10조 — 사업자 정보 표시. 정해진 값만 보여준다 (data/legal.ts 에서 채운다) */}
+        <p className="small" style={{ marginTop: 32 }}>
+          {BUSINESS_INFO.filter(([, v]) => !v.includes('[확정 필요]'))
+            .map(([k, v]) => `${k} ${v}`)
+            .join(' · ') || '사업자 정보는 정식 서비스 전에 표시됩니다.'}
+        </p>
         <div className="bottom">
           <span>© 2026 RECARRY</span>
           <span>{PROTOTYPE_NOTICE}</span>

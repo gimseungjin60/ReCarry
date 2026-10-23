@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { LEGAL, LEGAL_EFFECTIVE } from '@/data/legal'
+import { BUSINESS_INFO, LEGAL, LEGAL_EFFECTIVE } from '@/data/legal'
 import type { LegalKey } from '@/data/legal'
 
 /* 이용약관 · 개인정보 처리방침 · 대여 정책. 내용은 data/legal.ts 한 곳에 있다. */
@@ -16,8 +16,8 @@ export default function Legal({ doc }: { doc: LegalKey }) {
         시행일 {LEGAL_EFFECTIVE}
       </p>
       <div className="note" style={{ marginTop: 24 }}>
-        <span className="mono">DRAFT</span>
-        <span>정식 서비스 전 초안입니다. [확정 필요] 항목과 법률 검토를 거쳐 확정됩니다.</span>
+        <span className="mono">NOTE</span>
+        <span>[확정 필요] 로 표시된 사업자 정보는 정식 서비스 전에 채워집니다.</span>
       </div>
       <nav className="legal-nav" aria-label="정책 문서">
         {(Object.keys(LEGAL) as LegalKey[]).map((k) => (
@@ -39,6 +39,16 @@ export default function Legal({ doc }: { doc: LegalKey }) {
           )}
         </section>
       ))}
+      <section className="legal-sec">
+        <h2 className="t-title">사업자 정보</h2>
+        <ul>
+          {BUSINESS_INFO.map(([k, v]) => (
+            <li key={k}>
+              {k}: {v}
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   )
 }
