@@ -6,7 +6,6 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,13 +15,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
 	boolean existsByBookingNumber(String bookingNumber);
 
-	/** 접수 후 기한(cutoff 이전 접수)이 지나도록 확정되지 않은 예약 요청을 취소한다. 캐리어 점유가 풀린다. */
-	@Modifying
-	@Query(value = """
-		UPDATE bookings SET status = 'CANCELLED', cancel_reason = 'EXPIRED', cancelled_at = :now, updated_at = :now
-		WHERE status = 'REQUESTED' AND created_at < :cutoff AND created_at >= :from
-		""", nativeQuery = true)
-	int expireRequested(@Param("cutoff") Instant cutoff, @Param("from") Instant from, @Param("now") Instant now);
+	/** 입금 기한이 지난 예약 요청 (cutoff 이전 접수 · 정책 시행 이후 접수). 잠가서 입금 확인과 겹치지 않게 한다 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select b from Booking b where b.status = com.recarry.booking.BookingStatus.REQUESTED and b.createdAt < :cutoff and b.createdAt >= :from")
+	List<Booking> lockExpirable(@Param("cutoff") Instant cutoff, @Param("from") Instant from);
 
 	@Query("""
 		select b from Booking b join fetch b.carrier c join fetch c.model join fetch b.user

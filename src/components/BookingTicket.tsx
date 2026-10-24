@@ -1,6 +1,6 @@
 import { BOOKING_STATUS, CANCEL_REASON } from '@/data/status'
 import type { Booking } from '@/data/types'
-import { fmt, parseYmd, stayLabel, won } from '@/lib/format'
+import { dateTime, fmt, parseYmd, stayLabel, won } from '@/lib/format'
 
 /* 예약 티켓 (prototype 의 done 화면 .ticket). Complete · My Page 상세 · Admin 상세가 같이 쓴다.
    full 이면 배송지·연락처·요금 내역까지 보여준다. */
@@ -15,7 +15,7 @@ export default function BookingTicket({ booking: b, full }: { booking: Booking; 
     ['문 앞 회수', d(b.pickupDate)],
   ]
   if (b.expiresAt)
-    rows.push(['확정 기한', `${new Date(b.expiresAt).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })} (지나면 자동 취소)`])
+    rows.push(['입금 기한', `${dateTime(b.expiresAt)} (지나면 자동 취소)`])
   if (full) {
     rows.push(
       ['받는 분', `${b.recipientName} · ${b.phone}`],
@@ -26,7 +26,16 @@ export default function BookingTicket({ booking: b, full }: { booking: Booking; 
   }
   rows.push(['대여 요금', won(b.totalPrice)])
   // V4 이전 예약은 보증금 기록이 없다
-  if (b.deposit > 0) rows.push(['보증금 (반납 후 환불)', won(b.deposit)], ['합계 (대여 요금 + 보증금)', won(b.totalPrice + b.deposit)])
+  if (b.deposit > 0) rows.push(['보증금 (반납 후 환불)', won(b.deposit)], ['합계 (대여 요금 + 보증금)', won(b.amountDue)])
+  if (b.paidAt && b.paidAmount != null)
+    rows.push(['입금 확인', [won(b.paidAmount), dateTime(b.paidAt), b.payerName].filter(Boolean).join(' · ')])
+  if (b.refundAmount != null)
+    rows.push(['환불', `${won(b.refundAmount)} · ${b.refundedAt ? `${dateTime(b.refundedAt)} 송금 완료` : '송금 예정 (영업일 3일 안)'}`])
+  if (b.depositSettledAt && b.depositDeduction != null)
+    rows.push([
+      '보증금 정산',
+      `공제 ${won(b.depositDeduction)} · 돌려드림 ${won(b.deposit - b.depositDeduction)}` + (b.depositNote ? ` (${b.depositNote})` : ''),
+    ])
 
   return (
     <div className="ticket">

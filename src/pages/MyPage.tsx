@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import BankTransfer from '@/components/BankTransfer'
 import Button from '@/components/Button'
 import BookingTicket from '@/components/BookingTicket'
+import VerifyEmailNotice from '@/components/VerifyEmailNotice'
 import { BOOKING_STATUS } from '@/data/status'
 import type { Booking } from '@/data/types'
 import { api, ApiError } from '@/lib/api'
@@ -32,6 +34,7 @@ export function MyPage() {
       <h1 className="d-m" style={{ marginTop: 12 }}>
         {user.name}님의 여행
       </h1>
+      <VerifyEmailNotice />
 
       <div className="grid acct">
         <section className="acct-main" aria-labelledby="my-bookings">
@@ -131,7 +134,13 @@ export function MyBooking() {
   }, [bookingNumber])
 
   const cancel = async () => {
-    if (!b || !window.confirm('예약 요청을 취소할까요? 잡혀 있던 캐리어는 다른 고객이 예약할 수 있게 됩니다.')) return
+    if (!b) return
+    // 입금한 예약은 지금 취소하면 얼마를 돌려받는지 먼저 보여준다 (서버가 대여 정책으로 계산)
+    const q =
+      b.cancelRefund == null
+        ? '예약 요청을 취소할까요? 잡혀 있던 캐리어는 다른 고객이 예약할 수 있게 됩니다.'
+        : `예약을 취소할까요? 입금하신 ${won(b.paidAmount ?? 0)} 중 ${won(b.cancelRefund)}을 돌려드립니다.`
+    if (!window.confirm(q)) return
     setBusy(true)
     setErr('')
     try {
@@ -161,14 +170,18 @@ export function MyBooking() {
           <p className="err" role="alert">
             {err}
           </p>
+          {b.payment && <BankTransfer pay={b.payment} />}
           {b.cancellable && (
             <div style={{ marginTop: 24 }}>
-              {/* 결제 전(예약 요청) 단계만 직접 취소할 수 있다 — 결제 후 취소는 대여 정책 (docs/POLICY.md) */}
+              {/* 예약 요청 · 배송 전 확정 예약만 직접 취소 — 환불액은 대여 정책 (docs/POLICY.md) */}
               <Button variant="secondary" onClick={cancel} disabled={busy}>
-                {busy ? '취소 중…' : '예약 요청 취소'}
+                {busy ? '취소 중…' : b.status === 'REQUESTED' ? '예약 요청 취소' : '예약 취소'}
               </Button>
               <p className="small" style={{ marginTop: 12 }}>
-                결제 전 예약 요청은 무료로 취소할 수 있습니다. 확정된 예약의 취소·환불은{' '}
+                {b.cancelRefund == null
+                  ? '입금 전 예약 요청은 무료로 취소할 수 있습니다. '
+                  : `지금 취소하면 ${won(b.cancelRefund)}을 돌려드립니다. `}
+                취소·환불 기준은{' '}
                 <Link className="link" to="/policy">
                   대여 정책
                 </Link>

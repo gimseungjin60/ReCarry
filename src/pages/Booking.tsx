@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Button from '@/components/Button'
+import VerifyEmailNotice from '@/components/VerifyEmailNotice'
 import BookingStepper from '@/components/BookingStepper'
 import BookingSummary from '@/components/BookingSummary'
 import type { DateRange } from '@/components/Calendar'
@@ -171,6 +172,7 @@ export default function Booking() {
             예약하기
           </h1>
           <BookingStepper step={step} maxStep={maxStep} onGoto={goto} />
+          <VerifyEmailNotice />
         </div>
 
         <div className="grid bk">

@@ -34,6 +34,6 @@ public class CookieTokenResolver implements BearerTokenResolver {
 		return HttpMethod.POST.matches(method)
 			&& (path.equals("/api/auth/login") || path.equals("/api/auth/signup") || path.equals("/api/auth/logout")
 				|| path.equals("/api/auth/password-reset/request") || path.equals("/api/auth/password-reset/confirm")
-				|| path.equals("/api/auth/find-email"));
+				|| path.equals("/api/auth/find-email") || path.equals("/api/auth/verify-email"));
 	}
 }

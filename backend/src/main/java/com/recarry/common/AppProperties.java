@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /** application.yml 의 recarry.* — 비밀 값은 모두 환경변수에서 들어온다. */
 @ConfigurationProperties("recarry")
 public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginLimit, Admin admin, Booking booking,
-		Legal legal, Mail mail) {
+		Legal legal, Mail mail, Payment payment, String appUrl) {
 
 	public record Jwt(String secret, long ttlMinutes) {}
 
@@ -39,11 +39,30 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginL
 		}
 	}
 
-	/** 거래 메일 발송 (Brevo HTTPS API). apiKey 가 비어 있으면 보내지 않는다 */
-	public record Mail(String apiKey, String from, String fromName, boolean logOnly) {
+	/**
+	 * 거래 메일 발송 (Brevo HTTPS API). apiKey 가 비어 있으면 보내지 않는다.
+	 * requireVerifiedEmail: 메일을 보낼 수 있을 때만 "이메일 인증 후 예약"을 강제한다 (못 보내면 인증할 방법이 없다)
+	 */
+	public record Mail(String apiKey, String from, String fromName, boolean logOnly, boolean requireVerifiedEmail) {
 		public boolean configured() {
 			return apiKey != null && !apiKey.isBlank() && from != null && !from.isBlank();
 		}
+
+		/** 실제로 보내거나(운영) 로그로 대신할 수 있다(로컬) */
+		public boolean canSend() {
+			return configured() || logOnly;
+		}
+	}
+
+	/** 무통장 입금 계좌. 비어 있으면 임시(sample) 계좌를 보여주고 "입금하지 마세요"라고 알린다 */
+	public record Payment(String bankName, String bankAccount, String bankHolder) {
+		public boolean sample() {
+			return bankAccount == null || bankAccount.isBlank();
+		}
+
+		public String bank() { return sample() ? "OO은행" : bankName; }
+		public String account() { return sample() ? "000-000000-00-000" : bankAccount; }
+		public String holder() { return sample() ? "RECARRY (임시 계좌)" : bankHolder; }
 	}
 
 	/** 가입 시 동의받는 문서 버전 — 문서가 바뀌면 함께 올린다 */

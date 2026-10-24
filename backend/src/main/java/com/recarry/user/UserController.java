@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.recarry.auth.AuthDtos;
 import com.recarry.auth.CurrentUser;
+import com.recarry.auth.EmailVerification;
 import com.recarry.auth.SessionCookies;
 import com.recarry.auth.TokenService;
 
@@ -32,8 +33,10 @@ public class UserController {
 	private final UserService users;
 	private final TokenService tokens;
 	private final SessionCookies cookies;
+	private final EmailVerification verification;
 
-	public UserController(UserService users, TokenService tokens, SessionCookies cookies) {
+	public UserController(UserService users, TokenService tokens, SessionCookies cookies, EmailVerification verification) {
+		this.verification = verification;
 		this.users = users;
 		this.tokens = tokens;
 		this.cookies = cookies;
@@ -58,6 +61,13 @@ public class UserController {
 	@GetMapping("/me")
 	public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
 		return users.respond(users.get(CurrentUser.id(jwt)));
+	}
+
+	/** 인증 메일 다시 보내기 (15분에 3번) */
+	@PostMapping("/me/verify-email")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void resendVerification(@AuthenticationPrincipal Jwt jwt) {
+		verification.resend(CurrentUser.id(jwt));
 	}
 
 	@PostMapping("/me/consent")

@@ -64,12 +64,12 @@ export default function ConfirmStep({ carrier, start, end, form, agree, onAgree,
       <div className="note" style={{ marginTop: 24 }}>
         <span className="mono">NOTE</span>
         <span>
-          예약 요청이 저장되고 캐리어가 이 기간 동안 잡힙니다. 결제 기능은 준비 중이라 지금은 요금이 청구되지 않습니다.
+          예약 요청이 저장되고 캐리어가 이 기간 동안 잡힙니다. 다음 화면과 메일로 안내하는 계좌에 3일 안에 입금하면 예약이 확정됩니다 (무통장 입금).
         </span>
       </div>
       <label className="agree">
         <input type="checkbox" checked={agree} onChange={(e) => onAgree(e.target.checked)} />
-        <span>예약 내용과 대여 정책(보증금 · 취소 · 3일 안 확정)을 확인했습니다.</span>
+        <span>예약 내용과 대여 정책(보증금 · 취소 · 3일 안 입금)을 확인했습니다.</span>
       </label>
     </>
   )

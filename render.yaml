@@ -36,6 +36,14 @@ services:
         sync: false
       - key: MAIL_FROM                 # Brevo 에서 인증한 발신 이메일
         sync: false
+      - key: APP_URL                   # 메일 속 링크의 사이트 주소 — 도메인을 사면 바꾼다
+        value: https://re-carry.vercel.app
+      - key: BANK_NAME                 # 무통장 입금 계좌 — 비워 두면 임시(sample) 계좌가 보인다
+        sync: false
+      - key: BANK_ACCOUNT
+        sync: false
+      - key: BANK_HOLDER
+        sync: false
       - key: COOKIE_SAME_SITE          # Vercel rewrite(같은 origin) 구성
         value: Lax
       - key: DB_POOL_SIZE

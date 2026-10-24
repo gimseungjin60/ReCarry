@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { DateRange } from '@/components/Calendar'
 import { addDays, fmt } from '@/lib/format'
+import { searchAddress } from '@/lib/postcode'
 
 /* Step 03 배송 정보. 받는 분·연락처는 내 정보로 미리 채워진다. */
 
@@ -23,6 +25,13 @@ export default function DeliveryStep({ form, onChange, range }: Props) {
   const set = (k: keyof DeliveryForm) => (e: { target: { value: string } }) => onChange({ ...form, [k]: e.target.value })
   const arrive = range.start ? fmt(addDays(range.start, -1)) : '출발 전날'
   const collect = range.end ? fmt(range.end) : '반납일'
+  const [findErr, setFindErr] = useState('')
+  const find = () => {
+    setFindErr('')
+    searchAddress((addr) => onChange({ ...form, addr })).catch(() =>
+      setFindErr('주소 검색을 열지 못했습니다. 주소를 직접 입력해주세요.'),
+    )
+  }
 
   return (
     <>
@@ -46,10 +55,18 @@ export default function DeliveryStep({ form, onChange, range }: Props) {
           />
         </label>
       </div>
-      <label className="field">
-        <span className="l">주소</span>
-        <input value={form.addr} onChange={set('addr')} placeholder="도로명 주소" autoComplete="street-address" />
-      </label>
+      <div className="field">
+        <label className="l" htmlFor="bk-addr">
+          주소
+        </label>
+        <div className="addr-row">
+          <input id="bk-addr" value={form.addr} onChange={set('addr')} placeholder="도로명 주소" autoComplete="street-address" />
+          <button type="button" className="btn btn-secondary btn-sm" onClick={find}>
+            주소 검색
+          </button>
+        </div>
+        {findErr && <span className="small">{findErr}</span>}
+      </div>
       <label className="field">
         <span className="l">상세 주소</span>
         <input value={form.addr2} onChange={set('addr2')} placeholder="동, 호수" />

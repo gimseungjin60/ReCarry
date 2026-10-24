@@ -102,6 +102,33 @@ public class Booking {
 	@Column(name = "cancel_reason")
 	private CancelReason cancelReason;
 
+	/** 무통장 입금 확인 (관리자) */
+	@Column(name = "paid_at")
+	private Instant paidAt;
+
+	@Column(name = "paid_amount")
+	private Integer paidAmount;
+
+	@Column(name = "payer_name")
+	private String payerName;
+
+	/** 결제 후 취소의 환불 — 금액은 취소 시점에 확정, 송금하면 refundedAt */
+	@Column(name = "refund_amount")
+	private Integer refundAmount;
+
+	@Column(name = "refunded_at")
+	private Instant refundedAt;
+
+	/** 반납 후 보증금 정산 — 공제액과 사유, 돌려준 시각 */
+	@Column(name = "deposit_deduction")
+	private Integer depositDeduction;
+
+	@Column(name = "deposit_note")
+	private String depositNote;
+
+	@Column(name = "deposit_settled_at")
+	private Instant depositSettledAt;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -145,6 +172,36 @@ public class Booking {
 		}
 	}
 
+	/** 결제 예정 금액 = 대여 요금 + 보증금 */
+	public int amountDue() {
+		return totalPrice + deposit;
+	}
+
+	public boolean isPaid() {
+		return paidAt != null;
+	}
+
+	public void markPaid(int amount, String payer, Instant now) {
+		this.paidAmount = amount;
+		this.payerName = payer;
+		this.paidAt = now;
+	}
+
+	/** 결제한 예약을 취소할 때 돌려줄 금액 (0 이면 환불 없음) */
+	public void setRefund(int amount) {
+		this.refundAmount = amount;
+	}
+
+	public void markRefunded(Instant now) {
+		this.refundedAt = now;
+	}
+
+	public void settleDeposit(int deduction, String note, Instant now) {
+		this.depositDeduction = deduction;
+		this.depositNote = note;
+		this.depositSettledAt = now;
+	}
+
 	/** 탈퇴한 고객의 결제 전 취소 예약 — 보관 의무가 없는 배송 정보를 지운다 (docs/POLICY.md) */
 	public void eraseRecipient() {
 		this.recipientName = "탈퇴회원";
@@ -173,5 +230,13 @@ public class Booking {
 	public int getDeposit() { return deposit; }
 	public Instant getCancelledAt() { return cancelledAt; }
 	public CancelReason getCancelReason() { return cancelReason; }
+	public Instant getPaidAt() { return paidAt; }
+	public Integer getPaidAmount() { return paidAmount; }
+	public String getPayerName() { return payerName; }
+	public Integer getRefundAmount() { return refundAmount; }
+	public Instant getRefundedAt() { return refundedAt; }
+	public Integer getDepositDeduction() { return depositDeduction; }
+	public String getDepositNote() { return depositNote; }
+	public Instant getDepositSettledAt() { return depositSettledAt; }
 	public Instant getCreatedAt() { return createdAt; }
 }

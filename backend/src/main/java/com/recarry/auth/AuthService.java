@@ -27,11 +27,13 @@ public class AuthService {
 	private final LoginRateLimiter limiter;
 	private final AppProperties props;
 	private final Clock clock;
+	private final EmailVerification verification;
 	/** 없는 이메일로 로그인할 때도 해시 비교 시간을 들여, 응답 시간으로 가입 여부가 드러나지 않게 한다. */
 	private final String dummyHash;
 
 	public AuthService(UserRepository users, PasswordEncoder encoder, TokenService tokens, LoginRateLimiter limiter,
-			AppProperties props, Clock clock) {
+			AppProperties props, Clock clock, EmailVerification verification) {
+		this.verification = verification;
 		this.users = users;
 		this.encoder = encoder;
 		this.tokens = tokens;
@@ -67,6 +69,7 @@ public class AuthService {
 			// 동시에 같은 이메일로 가입한 경우 (lower(email) unique 인덱스)
 			throw ApiException.conflict("EMAIL_TAKEN", "이미 가입된 이메일입니다.");
 		}
+		verification.send(user);   // 메일을 보낼 수 없는 환경이면 보내지 않는다
 		return respond(user);
 	}
 
@@ -96,6 +99,6 @@ public class AuthService {
 	}
 
 	private Session respond(User user) {
-		return new Session(UserResponse.of(user, props.legal()), tokens.issue(user));
+		return new Session(UserResponse.of(user, props), tokens.issue(user));
 	}
 }

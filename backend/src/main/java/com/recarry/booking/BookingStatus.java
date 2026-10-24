@@ -3,7 +3,8 @@ package com.recarry.booking;
 import java.util.Set;
 
 /**
- * 예약 상태와 허용 전이. 결제가 없으므로 생성 직후는 REQUESTED(예약 요청).
+ * 예약 상태와 허용 전이. 생성 직후는 REQUESTED(예약 요청 = 입금 대기), 입금 확인 후 CONFIRMED.
+ * 고객이 직접 취소할 수 있는지는 날짜 · 입금 여부에 따라 다르다 (Refunds.customerCanCancel).
  *   REQUESTED → CONFIRMED | CANCELLED
  *   CONFIRMED → IN_USE | CANCELLED
  *   IN_USE    → RETURNED
@@ -25,10 +26,5 @@ public enum BookingStatus {
 			case IN_USE -> next == RETURNED;
 			case RETURNED, CANCELLED -> false;
 		};
-	}
-
-	/** 사용자가 직접 취소할 수 있는 상태. 취소·환불 정책이 정해지기 전이라 결제 전 단계만 허용한다. */
-	public boolean userCancellable() {
-		return this == REQUESTED;
 	}
 }

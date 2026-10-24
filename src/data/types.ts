@@ -82,6 +82,9 @@ export interface User {
   createdAt: string
   /** 시행 중인 약관·개인정보 처리방침에 아직 동의하지 않음 — /consent 를 먼저 거친다 */
   consentRequired: boolean
+  emailVerified: boolean
+  /** 메일 인증을 해야 예약할 수 있음 (서버가 메일을 보낼 수 있는 환경에서만 true) */
+  needsEmailVerification: boolean
 }
 
 /** 로그인·가입 응답. 토큰은 본문에 없다 — httpOnly 쿠키로만 온다 */
@@ -166,12 +169,41 @@ export interface Booking {
   totalPrice: number
   /** 보증금 — 결제 예정 금액은 totalPrice + deposit */
   deposit: number
+  /** 결제(입금)할 금액 = 대여 요금 + 보증금 */
+  amountDue: number
+  /** 고객이 직접 취소할 수 있음 — 예약 요청, 또는 배송 전 확정 예약 */
   cancellable: boolean
+  /** 입금한 예약을 지금 취소하면 돌려받는 금액 (대여 정책 — 서버 계산) */
+  cancelRefund: number | null
   createdAt: string
   /** 예약 요청일 때만: 이 시각까지 확정되지 않으면 자동 취소 */
   expiresAt: string | null
   cancelledAt: string | null
   cancelReason: 'USER' | 'ADMIN' | 'EXPIRED' | 'REJECTED' | null
+  /** 예약 요청(입금 대기)일 때만: 입금 안내 */
+  payment: BankInfo | null
+  paidAt: string | null
+  paidAmount: number | null
+  payerName: string | null
+  /** 입금 후 취소된 예약의 환불 금액 · 송금 완료 시각 */
+  refundAmount: number | null
+  refundedAt: string | null
+  /** 반납 후 보증금 정산 */
+  depositDeduction: number | null
+  depositNote: string | null
+  depositSettledAt: string | null
   /** 관리자 응답에만 있다 */
   customer: { id: number; email: string; name: string } | null
+}
+
+/** 무통장 입금 안내. sample = 아직 실제 계좌가 아닌 임시 계좌 */
+export interface BankInfo {
+  bank: string
+  account: string
+  holder: string
+  sample: boolean
+  amount: number
+  /** 입금자명 (받는 분 이름 + 예약번호 끝 4자리) */
+  payer: string
+  deadline: string | null
 }

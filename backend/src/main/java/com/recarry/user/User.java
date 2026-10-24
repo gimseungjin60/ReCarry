@@ -61,6 +61,10 @@ public class User {
 	@Column(name = "sessions_valid_after")
 	private Instant sessionsValidAfter;
 
+	/** 가입 이메일 소유 확인 시각 (EmailVerification) */
+	@Column(name = "email_verified_at")
+	private Instant emailVerifiedAt;
+
 	/** 관리자 2단계 인증(TOTP) — 켜져 있으면 로그인에 OTP 코드가 필요하다 */
 	@Column(name = "totp_secret")
 	private String totpSecret;
@@ -106,6 +110,11 @@ public class User {
 			&& !(legal.termsVersion().equals(termsVersion) && legal.privacyVersion().equals(privacyVersion));
 	}
 
+	/** 메일을 보낼 수 있는 환경에서 아직 이메일 인증을 하지 않은 일반 회원 — 예약 전에 인증을 받는다 */
+	public boolean needsEmailVerification(com.recarry.common.AppProperties.Mail mail) {
+		return role == Role.USER && emailVerifiedAt == null && mail.requireVerifiedEmail() && mail.canSend();
+	}
+
 	public void agree(String termsVersion, String privacyVersion, Instant at) {
 		this.termsVersion = termsVersion;
 		this.privacyVersion = privacyVersion;
@@ -136,6 +145,12 @@ public class User {
 		this.passwordHash = unusablePasswordHash;
 		this.deletedAt = now;
 		this.sessionsValidAfter = now;
+	}
+
+	public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
+
+	public void verifyEmail(Instant at) {
+		this.emailVerifiedAt = at;
 	}
 
 	public String getTotpSecret() { return totpSecret; }

@@ -125,6 +125,26 @@ public class AdminController {
 	@PatchMapping("/bookings/{bookingNumber}/status")
 	public BookingResponse changeBookingStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable String bookingNumber,
 			@Valid @RequestBody StatusChangeRequest req) {
-		return bookings.changeStatus(CurrentUser.id(jwt), bookingNumber, req.status());
+		return bookings.changeStatus(CurrentUser.id(jwt), bookingNumber, req.status(), req.refundAmount());
+	}
+
+	/** 무통장 입금 확인 → 예약 확정 */
+	@PostMapping("/bookings/{bookingNumber}/payment")
+	public BookingResponse confirmPayment(@AuthenticationPrincipal Jwt jwt, @PathVariable String bookingNumber,
+			@Valid @RequestBody com.recarry.booking.BookingDtos.PaymentRequest req) {
+		return bookings.confirmPayment(CurrentUser.id(jwt), bookingNumber, req.amount(), req.payerName());
+	}
+
+	/** 취소 환불 송금 완료 */
+	@PostMapping("/bookings/{bookingNumber}/refund-done")
+	public BookingResponse refundDone(@AuthenticationPrincipal Jwt jwt, @PathVariable String bookingNumber) {
+		return bookings.markRefunded(CurrentUser.id(jwt), bookingNumber);
+	}
+
+	/** 반납 후 보증금 정산 */
+	@PostMapping("/bookings/{bookingNumber}/deposit")
+	public BookingResponse settleDeposit(@AuthenticationPrincipal Jwt jwt, @PathVariable String bookingNumber,
+			@Valid @RequestBody com.recarry.booking.BookingDtos.DepositSettleRequest req) {
+		return bookings.settleDeposit(CurrentUser.id(jwt), bookingNumber, req.deduction(), req.note());
 	}
 }

@@ -63,6 +63,7 @@ class ApiIntegrationTest {
 		r.add("recarry.booking.request-expiry-from", () -> "2000-01-01");
 		// 메일은 실제로 보내지 않고 CapturingMailer 가 받는다
 		r.add("recarry.mail.log-only", () -> "true");
+		r.add("recarry.mail.require-verified-email", () -> "true");
 	}
 
 	/** 보낸 메일을 기억하는 Mailer — 비밀번호 재설정 코드를 테스트가 읽는다 */
@@ -138,7 +139,19 @@ class ApiIntegrationTest {
 		Res r = call("POST", "/api/auth/signup", null,
 			java.util.Map.of("email", email, "password", "passw0rd!", "name", "테스터", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		assertThat(r.status()).isEqualTo(201);
+		verified(email);
 		return r.session();
+	}
+
+	/** 메일 인증을 마친 것으로 — 예약 테스트용 (인증 흐름 자체는 email_verification_gates_booking 이 본다) */
+	void verified(String email) {
+		jdbc.update("UPDATE users SET email_verified_at = now() WHERE email = ?", email.toLowerCase());
+	}
+
+	/** 관리자가 결제 예정 금액 그대로 입금 확인 → 예약 확정 */
+	Res confirmPaid(String admin, String number) throws Exception {
+		int due = call("GET", "/api/admin/bookings/" + number, admin, null).body().get("amountDue").asInt();
+		return call("POST", "/api/admin/bookings/" + number + "/payment", admin, java.util.Map.of("amount", due, "payerName", "입금자"));
 	}
 
 	String adminToken() throws Exception {
@@ -227,8 +240,8 @@ class ApiIntegrationTest {
 			"name", "동의", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
 		assertThat(ok.status()).isEqualTo(201);
 		var row = jdbc.queryForMap("SELECT terms_version, privacy_version, agreed_at FROM users WHERE email = ?", email);
-		assertThat(row.get("terms_version")).isEqualTo("2026-10-23");
-		assertThat(row.get("privacy_version")).isEqualTo("2026-10-23");
+		assertThat(row.get("terms_version")).isEqualTo("2026-10-25");
+		assertThat(row.get("privacy_version")).isEqualTo("2026-10-25");
 		assertThat(row.get("agreed_at")).isNotNull();
 	}
 
@@ -452,10 +465,12 @@ class ApiIntegrationTest {
 		// 전이 규칙: REQUESTED → IN_USE 는 불가, CONFIRMED → IN_USE → RETURNED 는 가능
 		String statusPath = "/api/admin/bookings/" + number + "/status";
 		assertThat(call("PATCH", statusPath, admin, java.util.Map.of("status", "IN_USE")).code()).isEqualTo("INVALID_STATUS_TRANSITION");
-		assertThat(call("PATCH", statusPath, admin, java.util.Map.of("status", "CONFIRMED")).status()).isEqualTo(200);
-		// 확정된 예약은 사용자가 직접 취소할 수 없다
-		assertThat(call("POST", "/api/bookings/" + number + "/cancel", user, null).code()).isEqualTo("NOT_CANCELLABLE");
+		// 확정은 상태 변경이 아니라 입금 확인으로만
+		assertThat(call("PATCH", statusPath, admin, java.util.Map.of("status", "CONFIRMED")).code()).isEqualTo("USE_PAYMENT_CONFIRM");
+		assertThat(confirmPaid(admin, number).status()).isEqualTo(200);
 		assertThat(call("PATCH", statusPath, admin, java.util.Map.of("status", "IN_USE")).status()).isEqualTo(200);
+		// 배송이 시작된(이용 중) 예약은 사용자가 직접 취소할 수 없다
+		assertThat(call("POST", "/api/bookings/" + number + "/cancel", user, null).code()).isEqualTo("NOT_CANCELLABLE");
 		assertThat(call("PATCH", statusPath, admin, java.util.Map.of("status", "RETURNED")).status()).isEqualTo(200);
 		assertThat(call("PATCH", statusPath, admin, java.util.Map.of("status", "CANCELLED")).status()).isEqualTo(409);
 		assertThat(call("PATCH", statusPath, admin, java.util.Map.of("status", "NOPE")).status()).isEqualTo(400);
@@ -689,10 +704,11 @@ class ApiIntegrationTest {
 		java.util.Map<String, Object> signupBody = java.util.Map.of("email", email, "password", "passw0rd!",
 			"name", "탈퇴", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true);
 		String user = call("POST", "/api/auth/signup", null, signupBody).session();
+		verified(email);
 		String confirmed = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
 		String requested = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
 		String rejected = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
-		call("PATCH", "/api/admin/bookings/" + confirmed + "/status", admin, java.util.Map.of("status", "CONFIRMED"));
+		confirmPaid(admin, confirmed);
 		call("PATCH", "/api/admin/bookings/" + rejected + "/status", admin, java.util.Map.of("status", "CANCELLED"));
 		// 관리자 계정은 탈퇴할 수 없다
 		assertThat(call("POST", "/api/users/me/withdraw", admin, java.util.Map.of("password", ADMIN_PASSWORD)).code())
@@ -733,6 +749,7 @@ class ApiIntegrationTest {
 		String token = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
 			"name", "재동의", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).session();
 		assertThat(call("GET", "/api/users/me", token, null).body().get("consentRequired").asBoolean()).isFalse();
+		verified(email);
 
 		// 이전 문서(draft)에 동의한 회원
 		jdbc.update("UPDATE users SET terms_version = 'draft', privacy_version = 'draft' WHERE email = ?", email);
@@ -746,7 +763,7 @@ class ApiIntegrationTest {
 		Res agreed = call("POST", "/api/users/me/consent", token, java.util.Map.of("agreeTerms", true, "agreePrivacy", true));
 		assertThat(agreed.status()).isEqualTo(200);
 		assertThat(agreed.body().get("consentRequired").asBoolean()).isFalse();
-		assertThat(jdbc.queryForObject("SELECT terms_version FROM users WHERE email = ?", String.class, email)).isEqualTo("2026-10-23");
+		assertThat(jdbc.queryForObject("SELECT terms_version FROM users WHERE email = ?", String.class, email)).isEqualTo("2026-10-25");
 		assertThat(call("POST", "/api/bookings", token, booking("24", null, window(3), null)).status()).isEqualTo(201);
 	}
 
@@ -827,6 +844,121 @@ class ApiIntegrationTest {
 		// 숫자가 없는 번호는 형식 오류 — 휴대폰 번호가 비어 있는 계정(관리자 bootstrap)을 찾지 못하게
 		assertThat(call("POST", "/api/auth/find-email", null, java.util.Map.of("name", "관리자", "phone", "---------")).code())
 			.isEqualTo("VALIDATION_FAILED");
+	}
+
+	// ------------------------------------------------------------------ 무통장 입금 · 환불 · 보증금 · 이메일 인증
+
+	@Test
+	void bank_transfer_confirm_then_customer_cancel_refunds_by_policy() throws Exception {
+		String admin = adminToken();
+		String user = signup();
+		// 배송 예정일이 3일보다 먼 예약 → 입금 후 취소해도 전액 환불
+		LocalDate[] w = window(3);
+		JsonNode b = call("POST", "/api/bookings", user, booking("20", null, w, null)).body();
+		String number = b.get("bookingNumber").asString();
+		int due = b.get("amountDue").asInt();
+		assertThat(due).isEqualTo(b.get("totalPrice").asInt() + b.get("deposit").asInt());
+		// 입금 대기 화면: 계좌(임시) · 금액 · 기한
+		JsonNode pay = b.get("payment");
+		assertThat(pay.get("sample").asBoolean()).isTrue();
+		assertThat(pay.get("amount").asInt()).isEqualTo(due);
+		assertThat(pay.get("deadline").isNull()).isFalse();
+
+		assertThat(call("POST", "/api/admin/bookings/" + number + "/payment", admin,
+			java.util.Map.of("amount", due - 1, "payerName", "테스터")).code()).isEqualTo("AMOUNT_MISMATCH");
+		assertThat(call("POST", "/api/admin/bookings/" + number + "/payment", user,
+			java.util.Map.of("amount", due, "payerName", "테스터")).status()).isEqualTo(403);
+		JsonNode paid = confirmPaid(admin, number).body();
+		assertThat(paid.get("status").asString()).isEqualTo("CONFIRMED");
+		assertThat(paid.get("paidAmount").asInt()).isEqualTo(due);
+		assertThat(paid.get("payment").isNull()).isTrue();
+		assertThat(confirmPaid(admin, number).code()).isEqualTo("NOT_AWAITING_PAYMENT");
+
+		// 고객 화면: 지금 취소하면 전액
+		JsonNode mine = call("GET", "/api/bookings/" + number, user, null).body();
+		assertThat(mine.get("cancellable").asBoolean()).isTrue();
+		assertThat(mine.get("cancelRefund").asInt()).isEqualTo(due);
+		JsonNode cancelled = call("POST", "/api/bookings/" + number + "/cancel", user, null).body();
+		assertThat(cancelled.get("status").asString()).isEqualTo("CANCELLED");
+		assertThat(cancelled.get("refundAmount").asInt()).isEqualTo(due);
+
+		// 운영자: 환불 송금 완료 (두 번은 안 된다)
+		Res done = call("POST", "/api/admin/bookings/" + number + "/refund-done", admin, null);
+		assertThat(done.status()).isEqualTo(200);
+		assertThat(done.body().get("refundedAt").isNull()).isFalse();
+		assertThat(call("POST", "/api/admin/bookings/" + number + "/refund-done", admin, null).code()).isEqualTo("ALREADY_REFUNDED");
+	}
+
+	@Test
+	void refund_rules_follow_the_rental_policy() throws Exception {
+		String admin = adminToken();
+		String user = signup();
+		// 배송 예정일이 이틀 뒤(출발 3일 뒤)인 예약을 만들려면 날짜를 직접 고른다
+		LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+		LocalDate[] near = { today.plusDays(3), today.plusDays(5) };   // 배송 예정일 = 오늘 + 2일
+		JsonNode b = call("POST", "/api/bookings", user, booking("28", null, near, null)).body();
+		if (b.get("bookingNumber") == null) return;   // 28" 한 대가 다른 테스트에 잡혀 있으면 건너뛴다
+		String number = b.get("bookingNumber").asString();
+		confirmPaid(admin, number);
+		// 입금 후 24시간 안이면 전액
+		assertThat(call("GET", "/api/bookings/" + number, user, null).body().get("cancelRefund").asInt())
+			.isEqualTo(b.get("amountDue").asInt());
+		// 24시간이 지났다면(입금 시각을 이틀 전으로) — 배송 2일 전이므로 보증금은 공제
+		jdbc.update("UPDATE bookings SET paid_at = now() - interval '2 days' WHERE booking_number = ?", number);
+		JsonNode later = call("GET", "/api/bookings/" + number, user, null).body();
+		assertThat(later.get("cancelRefund").asInt()).isEqualTo(b.get("totalPrice").asInt());
+		// 운영자 취소는 환불액을 정할 수 있다 (입금액을 넘을 수는 없다)
+		String path = "/api/admin/bookings/" + number + "/status";
+		assertThat(call("PATCH", path, admin, java.util.Map.of("status", "CANCELLED", "refundAmount", 999_999_999)).code()).isEqualTo("INVALID_REFUND");
+		JsonNode c = call("PATCH", path, admin, java.util.Map.of("status", "CANCELLED", "refundAmount", 1000)).body();
+		assertThat(c.get("refundAmount").asInt()).isEqualTo(1000);
+		assertThat(c.get("cancelReason").asString()).isEqualTo("ADMIN");
+	}
+
+	@Test
+	void deposit_is_settled_after_return() throws Exception {
+		String admin = adminToken();
+		String user = signup();
+		String number = call("POST", "/api/bookings", user, booking("24", null, window(3), null)).body().get("bookingNumber").asString();
+		String path = "/api/admin/bookings/" + number + "/status";
+		String dep = "/api/admin/bookings/" + number + "/deposit";
+		assertThat(call("POST", dep, admin, java.util.Map.of("deduction", 0)).code()).isEqualTo("NOT_RETURNED");
+		int deposit = confirmPaid(admin, number).body().get("deposit").asInt();
+		call("PATCH", path, admin, java.util.Map.of("status", "IN_USE"));
+		call("PATCH", path, admin, java.util.Map.of("status", "RETURNED"));
+		assertThat(call("POST", dep, admin, java.util.Map.of("deduction", deposit + 1, "note", "x")).code()).isEqualTo("INVALID_DEDUCTION");
+		assertThat(call("POST", dep, admin, java.util.Map.of("deduction", 1000)).code()).isEqualTo("INVALID_DEDUCTION");   // 사유 없음
+		JsonNode s = call("POST", dep, admin, java.util.Map.of("deduction", 1000, "note", "바퀴 교체")).body();
+		assertThat(s.get("depositDeduction").asInt()).isEqualTo(1000);
+		assertThat(s.get("depositSettledAt").isNull()).isFalse();
+		assertThat(call("POST", dep, admin, java.util.Map.of("deduction", 0)).code()).isEqualTo("ALREADY_SETTLED");
+		// 고객도 정산 결과를 본다
+		assertThat(call("GET", "/api/bookings/" + number, user, null).body().get("depositNote").asString()).isEqualTo("바퀴 교체");
+	}
+
+	@Test
+	void email_verification_gates_booking() throws Exception {
+		String email = "verify-" + UUID.randomUUID() + "@test.recarry";
+		String token = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "인증", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).session();
+		assertThat(call("GET", "/api/users/me", token, null).body().get("emailVerified").asBoolean()).isFalse();
+		Res blocked = call("POST", "/api/bookings", token, booking("20", null, window(3), null));
+		assertThat(blocked.status()).isEqualTo(403);
+		assertThat(blocked.code()).isEqualTo("EMAIL_NOT_VERIFIED");
+
+		// 가입 때 인증 메일이 간다 — 링크의 토큰으로 인증
+		for (int i = 0; i < 50 && !mails.lastBody.containsKey(email); i++) Thread.sleep(100);
+		var m = java.util.regex.Pattern.compile("token=([A-Za-z0-9._-]+)").matcher(mails.lastBody.get(email));
+		assertThat(m.find()).isTrue();
+		String link = m.group(1);
+		assertThat(call("POST", "/api/auth/verify-email", null, java.util.Map.of("token", link + "x")).code()).isEqualTo("INVALID_TOKEN");
+		assertThat(call("POST", "/api/auth/verify-email", null, java.util.Map.of("token", "1.1.abc")).code()).isIn("INVALID_TOKEN", "TOKEN_EXPIRED");
+		assertThat(call("POST", "/api/auth/verify-email", null, java.util.Map.of("token", link)).status()).isEqualTo(204);
+		assertThat(call("GET", "/api/users/me", token, null).body().get("emailVerified").asBoolean()).isTrue();
+		assertThat(call("POST", "/api/bookings", token, booking("20", null, window(3), null)).status()).isEqualTo(201);
+		// 예약 접수 메일에는 입금 안내가 들어 있다
+		for (int i = 0; i < 50 && !mails.lastBody.getOrDefault(email, "").contains("입금 계좌"); i++) Thread.sleep(100);
+		assertThat(mails.lastBody.get(email)).contains("입금 계좌").contains("임시");
 	}
 
 	// ------------------------------------------------------------------ 관리자 2단계 인증 · 접속기록

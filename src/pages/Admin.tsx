@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import BookingTicket from '@/components/BookingTicket'
+import Button from '@/components/Button'
 import { CarrierCreate, ModelEditor } from '@/pages/AdminCarrier'
 import { AuditLog, Schedule, TwoFactor } from '@/pages/AdminOps'
 import { BOOKING_NEXT, BOOKING_STATUS, CARRIER_OPERATIONAL, CARRIER_STATUS } from '@/data/status'
@@ -293,8 +294,160 @@ export function AdminBooking() {
               <dd className="mono">{new Date(b.createdAt).toLocaleString('ko-KR')}</dd>
             </div>
           </dl>
+          {/* 상태가 바뀌면 입력값을 새로 채운다 */}
+          <BookingMoney key={b.status + (b.refundedAt ?? '')} b={b} onChange={setB} />
         </>
       )}
     </div>
+  )
+}
+
+/** 예약 상세의 돈 처리 — 입금 확인(→ 확정) · 취소 환불액 · 환불 송금 완료 · 반납 후 보증금 정산. 금액 검증은 서버가 한다 */
+function BookingMoney({ b, onChange }: { b: Booking; onChange: (b: Booking) => void }) {
+  const [amount, setAmount] = useState(String(b.amountDue))
+  const [payer, setPayer] = useState(b.payment?.payer ?? '')
+  const [refund, setRefund] = useState(String(b.paidAmount ?? 0))
+  const [deduction, setDeduction] = useState('0')
+  const [note, setNote] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const path = `/api/admin/bookings/${b.bookingNumber}`
+
+  const run = async (question: string, url: string, method: 'POST' | 'PATCH', body?: object) => {
+    if (!window.confirm(question)) return
+    setBusy(true)
+    setErr('')
+    try {
+      onChange(await api<Booking>(url, { method, body }))
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : '요청을 처리하지 못했습니다.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const num = (s: string) => Number(s.replace(/[^0-9]/g, '') || 0)
+  const box = { maxWidth: 560, marginTop: 32 }
+
+  let body = null
+  if (b.status === 'REQUESTED') {
+    body = (
+      <>
+        <h2 className="t-title">입금 확인</h2>
+        <p className="small" style={{ margin: '8px 0 20px' }}>
+          통장에 들어온 금액이 결제 예정 금액({won(b.amountDue)})과 같을 때만 확정됩니다. 확정 메일이 고객에게 갑니다.
+        </p>
+        <div className="row2">
+          <label className="field">
+            <span className="l">입금액</span>
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" />
+          </label>
+          <label className="field">
+            <span className="l">입금자명</span>
+            <input value={payer} onChange={(e) => setPayer(e.target.value)} />
+          </label>
+        </div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Button
+            disabled={busy}
+            onClick={() =>
+              run(`${won(num(amount))} 입금을 확인하고 예약을 확정할까요?`, `${path}/payment`, 'POST', {
+                amount: num(amount),
+                payerName: payer,
+              })
+            }
+          >
+            입금 확인 · 예약 확정
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={busy}
+            onClick={() => run('예약 요청을 거절(취소)할까요? 되돌릴 수 없습니다.', `${path}/status`, 'PATCH', { status: 'CANCELLED' })}
+          >
+            요청 거절
+          </Button>
+        </div>
+      </>
+    )
+  } else if (b.status === 'CONFIRMED' && b.paidAmount != null) {
+    body = (
+      <>
+        <h2 className="t-title">운영자 취소 · 환불</h2>
+        <p className="small" style={{ margin: '8px 0 20px' }}>
+          회사 사정 취소는 전액 환불이 기본입니다 (대여 정책). 입금액 {won(b.paidAmount)} 을 넘을 수 없습니다.
+        </p>
+        <label className="field">
+          <span className="l">환불 금액</span>
+          <input value={refund} onChange={(e) => setRefund(e.target.value)} inputMode="numeric" />
+        </label>
+        <Button
+          variant="secondary"
+          disabled={busy}
+          onClick={() =>
+            run(`예약을 취소하고 ${won(num(refund))}을 환불할까요? 되돌릴 수 없습니다.`, `${path}/status`, 'PATCH', {
+              status: 'CANCELLED',
+              refundAmount: num(refund),
+            })
+          }
+        >
+          예약 취소
+        </Button>
+      </>
+    )
+  } else if (b.status === 'CANCELLED' && b.refundAmount != null && !b.refundedAt) {
+    body = (
+      <>
+        <h2 className="t-title">환불 송금</h2>
+        <p className="small" style={{ margin: '8px 0 20px' }}>
+          {won(b.refundAmount)}을 고객 계좌로 보낸 뒤 눌러주세요. 고객에게 환불 완료 메일이 갑니다.
+        </p>
+        <div style={{ marginTop: 16 }}>
+          <Button disabled={busy} onClick={() => run(`${won(b.refundAmount ?? 0)} 송금을 마쳤나요?`, `${path}/refund-done`, 'POST')}>
+            환불 송금 완료
+          </Button>
+        </div>
+      </>
+    )
+  } else if (b.status === 'RETURNED' && b.paidAt && !b.depositSettledAt) {
+    body = (
+      <>
+        <h2 className="t-title">보증금 정산</h2>
+        <p className="small" style={{ margin: '8px 0 20px' }}>
+          반납 검수 결과로 공제할 금액을 적어주세요 (보증금 {won(b.deposit)} 이하, 공제하면 사유 필수).
+        </p>
+        <div className="row2">
+          <label className="field">
+            <span className="l">공제 금액</span>
+            <input value={deduction} onChange={(e) => setDeduction(e.target.value)} inputMode="numeric" />
+          </label>
+          <label className="field">
+            <span className="l">공제 사유</span>
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="예: 바퀴 교체" />
+          </label>
+        </div>
+        <Button
+          disabled={busy}
+          onClick={() =>
+            run(
+              `공제 ${won(num(deduction))} · 돌려드림 ${won(b.deposit - num(deduction))} 으로 정산할까요?`,
+              `${path}/deposit`,
+              'POST',
+              { deduction: num(deduction), note },
+            )
+          }
+        >
+          보증금 정산
+        </Button>
+      </>
+    )
+  }
+  if (!body) return null
+  return (
+    <section style={box}>
+      {body}
+      <p className="err" role="alert">
+        {err}
+      </p>
+    </section>
   )
 }

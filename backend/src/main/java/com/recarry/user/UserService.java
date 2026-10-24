@@ -32,7 +32,7 @@ public class UserService {
 	}
 
 	public UserResponse respond(User u) {
-		return UserResponse.of(u, props.legal());
+		return UserResponse.of(u, props);
 	}
 
 	/** 시행 중인 문서 버전에 다시 동의 (이전 버전에 동의했거나 기록이 없는 회원) */

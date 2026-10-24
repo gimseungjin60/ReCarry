@@ -10,9 +10,10 @@ export const BOOKING_STATUS: Record<BookingStatus, string> = {
   CANCELLED: '취소',
 }
 
-/** 관리자 화면에서 고를 수 있는 다음 상태 (backend 규칙과 같다) */
+/** 관리자 목록에서 고를 수 있는 다음 상태 (backend 규칙과 같다).
+    예약 확정은 상태 변경이 아니라 예약 상세의 '입금 확인'으로만 한다 */
 export const BOOKING_NEXT: Record<BookingStatus, BookingStatus[]> = {
-  REQUESTED: ['CONFIRMED', 'CANCELLED'],
+  REQUESTED: ['CANCELLED'],
   CONFIRMED: ['IN_USE', 'CANCELLED'],
   IN_USE: ['RETURNED'],
   RETURNED: [],

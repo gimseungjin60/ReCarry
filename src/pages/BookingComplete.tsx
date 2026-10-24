@@ -1,10 +1,11 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import Button from '@/components/Button'
+import BankTransfer from '@/components/BankTransfer'
 import BookingTicket from '@/components/BookingTicket'
 import type { Booking } from '@/data/types'
 import { useTitle } from '@/lib/useTitle'
 
-/* PRD §4 Complete — 예약번호 / 캐리어 / 이용 날짜 / 배송 정보 / 총 금액.
+/* PRD §4 Complete — 예약번호 / 캐리어 / 이용 날짜 / 배송 정보 / 총 금액 + 무통장 입금 안내.
    Booking 이 POST /api/bookings 응답(서버에 저장된 예약)을 state 로 넘긴다. */
 
 export default function BookingComplete() {
@@ -29,10 +30,7 @@ export default function BookingComplete() {
 
       <BookingTicket booking={b} />
 
-      <div className="note" style={{ marginTop: 20, maxWidth: 560 }}>
-        <span className="mono">PROTOTYPE</span>
-        <span>예약 요청은 저장되었지만, 결제·배송·알림 연동 전 단계라 실제 결제·배송·알림은 발생하지 않습니다.</span>
-      </div>
+      {b.payment && <BankTransfer pay={b.payment} />}
       <p className="small" style={{ marginTop: 20, maxWidth: 560 }}>
         여행을 마친 캐리어는 세척과 검수를 거쳐 다음 여행자에게 전달됩니다.
       </p>

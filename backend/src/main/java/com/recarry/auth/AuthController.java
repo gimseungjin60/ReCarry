@@ -37,9 +37,11 @@ public class AuthController {
 	private final UserRepository users;
 	private final AppProperties props;
 	private final PasswordResetService resets;
+	private final EmailVerification verification;
 
 	public AuthController(AuthService auth, SessionCookies cookies, JwtDecoder decoder, UserRepository users,
-			AppProperties props, PasswordResetService resets) {
+			AppProperties props, PasswordResetService resets, EmailVerification verification) {
+		this.verification = verification;
 		this.props = props;
 		this.resets = resets;
 		this.auth = auth;
@@ -72,6 +74,15 @@ public class AuthController {
 		resets.confirm(req.email(), req.code(), req.newPassword());
 	}
 
+	public record VerifyRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 300) String token) {}
+
+	/** 메일의 인증 링크 → 프론트 /verify-email 이 토큰을 보낸다 */
+	@PostMapping("/verify-email")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void verifyEmail(@Valid @RequestBody VerifyRequest req) {
+		verification.verify(req.token());
+	}
+
 	@PostMapping("/find-email")
 	public AuthDtos.FindEmailResponse findEmail(@Valid @RequestBody AuthDtos.FindEmailRequest req, HttpServletRequest http) {
 		return new AuthDtos.FindEmailResponse(resets.findEmails(req.name(), req.phone()));
@@ -94,7 +105,7 @@ public class AuthController {
 		if (token == null) return new SessionResponse(null);
 		try {
 			Long id = Long.valueOf(decoder.decode(token).getSubject());
-			UserResponse user = users.findById(id).map(u -> UserResponse.of(u, props.legal())).orElse(null);
+			UserResponse user = users.findById(id).map(u -> UserResponse.of(u, props)).orElse(null);
 			if (user == null) cookies.clear(res);
 			return new SessionResponse(user);
 		} catch (JwtException | NumberFormatException e) {

@@ -25,13 +25,15 @@ public class BookingExpiry {
 	private static final Logger log = LoggerFactory.getLogger(BookingExpiry.class);
 
 	private final BookingRepository bookings;
+	private final BookingMails mails;
 	private final Clock clock;
 	private final Duration ttl;
 	/** 정책 시행 이후 접수된 요청만 — 3일 규칙을 안내받기 전의 요청은 자동으로 취소하지 않는다 */
 	private final Instant appliesFrom;
 
-	public BookingExpiry(BookingRepository bookings, Clock clock, AppProperties props) {
+	public BookingExpiry(BookingRepository bookings, BookingMails mails, Clock clock, AppProperties props) {
 		this.bookings = bookings;
+		this.mails = mails;
 		this.clock = clock;
 		this.ttl = Duration.ofDays(props.booking().requestExpiryDays());
 		this.appliesFrom = props.booking().expiryAppliesFrom();
@@ -42,7 +44,11 @@ public class BookingExpiry {
 	@Transactional
 	public void expire() {   // void: 리스너가 값을 돌려주면 Spring 이 그 값을 다시 이벤트로 발행한다
 		Instant now = clock.instant();
-		int n = bookings.expireRequested(now.minus(ttl), appliesFrom, now);
-		if (n > 0) log.info("expired {} unconfirmed booking request(s)", n);
+		var expired = bookings.lockExpirable(now.minus(ttl), appliesFrom);
+		for (Booking b : expired) {
+			b.moveTo(BookingStatus.CANCELLED, now, Booking.CancelReason.EXPIRED);
+			mails.cancelled(b);
+		}
+		if (!expired.isEmpty()) log.info("expired {} unpaid booking request(s)", expired.size());
 	}
 }

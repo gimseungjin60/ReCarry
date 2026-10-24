@@ -61,6 +61,12 @@ recarry:
     from: ${MAIL_FROM:}            # Brevo 에서 인증한 발신 주소
     from-name: RECARRY
     log-only: false                # local 프로필만 true — 코드가 로그에 남으므로 운영에서 켜지 않는다
+    require-verified-email: ${REQUIRE_VERIFIED_EMAIL:true}   # 메일을 보낼 수 있을 때만 적용 (이메일 인증 후 예약)
+  payment:                         # 무통장 입금 계좌 — 비어 있으면 임시(sample) 계좌 표시. docs/POLICY.md
+    bank-name: ${BANK_NAME:}
+    bank-account: ${BANK_ACCOUNT:}
+    bank-holder: ${BANK_HOLDER:}
+  app-url: ${APP_URL:http://localhost:5173}   # 메일 속 링크(이메일 인증 등)의 사이트 주소
   legal:                           # 가입 시 동의받는 문서 버전 (users 에 기록) = 화면 문서의 시행일. src/data/legal.ts 와 같이 바꾼다
-    terms-version: "2026-10-23"
-    privacy-version: "2026-10-23"
+    terms-version: "2026-10-25"
+    privacy-version: "2026-10-25"

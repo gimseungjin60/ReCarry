@@ -32,33 +32,62 @@ public final class BookingDtos {
 		@Size(max = 300) String requestMessage,
 		@PositiveOrZero Integer expectedTotal) {}
 
-	public record StatusChangeRequest(@NotNull(message = "상태를 선택해주세요.") BookingStatus status) {}
+	/** refundAmount: 결제한 예약을 운영자가 취소할 때 돌려줄 금액 (없으면 결제 금액 전액) */
+	public record StatusChangeRequest(@NotNull(message = "상태를 선택해주세요.") BookingStatus status,
+		@PositiveOrZero(message = "환불 금액은 0원 이상입니다.") Integer refundAmount) {}
+
+	/** 무통장 입금 확인 — 통장에 들어온 금액과 입금자명 */
+	public record PaymentRequest(
+		@NotNull(message = "입금액을 입력해주세요.") @PositiveOrZero Integer amount,
+		@NotBlank(message = "입금자명을 입력해주세요.") @Size(max = 50) String payerName) {}
+
+	/** 반납 후 보증금 정산 — 파손 · 연체 공제액과 사유 */
+	public record DepositSettleRequest(
+		@NotNull(message = "공제액을 입력해주세요. 없으면 0") @PositiveOrZero(message = "공제액은 0원 이상입니다.") Integer deduction,
+		@Size(max = 200) String note) {}
+
+	/** 입금 안내 — 예약 요청(입금 대기)일 때만. sample 이면 임시 계좌다 (실제로 입금하면 안 된다) */
+	/** 입금 안내 — payer: 입금자명으로 쓸 이름 (받는 분 이름 + 예약번호 끝 4자리) */
+	public record BankInfo(String bank, String account, String holder, boolean sample, int amount, String payer, Instant deadline) {}
+
+	/** 응답을 만들 때 필요한 "지금" 정보 — BookingService 가 채운다 */
+	record View(Duration requestTtl, Instant expiryFrom, Instant now, LocalDate today, com.recarry.common.AppProperties.Payment pay) {}
 
 	public record Customer(Long id, String email, String name) {}
 
 	/**
 	 * customer 는 관리자 응답에만 채운다.
-	 * deposit 은 대여 요금(totalPrice)과 별도 — 결제 예정 금액은 totalPrice + deposit.
-	 * expiresAt: REQUESTED 일 때만, 이 시각까지 확정되지 않으면 자동 취소된다.
+	 * deposit 은 대여 요금(totalPrice)과 별도 — 결제 예정 금액 amountDue = totalPrice + deposit.
+	 * expiresAt: REQUESTED(입금 대기) 일 때만, 이 시각까지 입금 확인이 안 되면 자동 취소된다.
+	 * cancellable · cancelRefund: 지금 고객이 직접 취소할 수 있는지, 그때 돌려받을 금액 (Refunds).
 	 */
 	public record BookingResponse(String bookingNumber, BookingStatus status, String size, String carrierName,
 			String carrierCode, String grade, LocalDate startDate, LocalDate endDate, int nights,
 			LocalDate deliveryDate, LocalDate pickupDate, String recipientName, String phone, String address,
 			String addressDetail, String requestMessage, int basePrice, int extraPrice, int totalPrice, int deposit,
-			boolean cancellable, Instant createdAt, Instant expiresAt, Instant cancelledAt,
-			Booking.CancelReason cancelReason, Customer customer) {
+			int amountDue, boolean cancellable, Integer cancelRefund, Instant createdAt, Instant expiresAt,
+			Instant cancelledAt, Booking.CancelReason cancelReason, BankInfo payment, Instant paidAt, Integer paidAmount,
+			String payerName, Integer refundAmount, Instant refundedAt, Integer depositDeduction, String depositNote,
+			Instant depositSettledAt, Customer customer) {
 
-		static BookingResponse of(Booking b, boolean withCustomer, Duration requestTtl, Instant expiryFrom) {
+		static BookingResponse of(Booking b, boolean withCustomer, View v) {
 			var c = b.getCarrier();
 			// 자동 만료 대상(정책 시행 이후 접수된 요청)에만 기한을 보여준다 — BookingExpiry 와 같은 조건
 			Instant expiresAt = b.getStatus() == BookingStatus.REQUESTED && b.getCreatedAt() != null
-				&& !b.getCreatedAt().isBefore(expiryFrom) ? b.getCreatedAt().plus(requestTtl) : null;
+				&& !b.getCreatedAt().isBefore(v.expiryFrom()) ? b.getCreatedAt().plus(v.requestTtl()) : null;
+			boolean cancellable = Refunds.customerCanCancel(b, v.today());
+			Integer cancelRefund = cancellable && b.isPaid() ? Refunds.customerCancelRefund(b, v.now(), v.today()) : null;
+			BankInfo bank = b.getStatus() == BookingStatus.REQUESTED
+				? new BankInfo(v.pay().bank(), v.pay().account(), v.pay().holder(), v.pay().sample(), b.amountDue(),
+				BookingMails.payerHint(b), expiresAt)
+				: null;
 			return new BookingResponse(b.getBookingNumber(), b.getStatus(), c.getModel().getSize(),
 				c.getModel().getName(), c.getCode(), c.getGrade(), b.getStartDate(), b.getEndDate(), b.getNights(),
 				b.getStartDate().minusDays(1), b.getEndDate(), b.getRecipientName(), b.getPhone(), b.getAddress(),
 				b.getAddressDetail(), b.getRequestMessage(), b.getBasePrice(), b.getExtraPrice(), b.getTotalPrice(),
-				b.getDeposit(), b.getStatus().userCancellable(), b.getCreatedAt(), expiresAt, b.getCancelledAt(),
-				b.getCancelReason(),
+				b.getDeposit(), b.amountDue(), cancellable, cancelRefund, b.getCreatedAt(), expiresAt, b.getCancelledAt(),
+				b.getCancelReason(), bank, b.getPaidAt(), b.getPaidAmount(), b.getPayerName(), b.getRefundAmount(),
+				b.getRefundedAt(), b.getDepositDeduction(), b.getDepositNote(), b.getDepositSettledAt(),
 				withCustomer ? new Customer(b.getUser().getId(), b.getUser().getEmail(), b.getUser().getName()) : null);
 		}
 	}

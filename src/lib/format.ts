@@ -42,3 +42,6 @@ export const parseYmd = (s: string) => {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
+
+/** 서버 시각(ISO) → '2026. 10. 24. 오후 3:00' */
+export const dateTime = (iso: string) => new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
