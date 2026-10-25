@@ -57,8 +57,9 @@ public class SecurityConfig {
 			.authorizeHttpRequests(a -> a
 				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/logout",
 					"/api/auth/password-reset/request", "/api/auth/password-reset/confirm", "/api/auth/find-email",
-					"/api/auth/verify-email").permitAll()
-				.requestMatchers(HttpMethod.GET, "/api/auth/session", "/api/health").permitAll()
+					"/api/auth/verify-email", "/api/auth/signup/email-code", "/api/auth/kakao/signup").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/auth/session", "/api/health", "/api/auth/options",
+					"/api/auth/kakao/start", "/api/auth/kakao/callback", "/api/auth/kakao/pending").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/carriers", "/api/carriers/**").permitAll()
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")
 				.requestMatchers("/api/**").authenticated()

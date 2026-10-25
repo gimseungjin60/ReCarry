@@ -14,6 +14,10 @@ import { fmt, nights, priceFor, stayLabel, won } from '@/lib/format'
    사이즈와 날짜만 고르면 바로 예약 흐름으로 넘어간다. 가격은 서버가 다시 계산한다 (표시용).
    오른쪽 캐리어는 고른 사이즈의 크기 · 색으로 바뀐다. */
 
+const SIZES: CarrierSize[] = ['20', '24', '28']
+/** 카탈로그(서버)를 받기 전에 보여줄 용도 — 받으면 서버 문구로 바뀐다 */
+const SIZE_HINT: Record<CarrierSize, string> = { '20': '기내 반입', '24': '위탁 수하물', '28': '장기 여행' }
+
 /** 가장 큰 사이즈(28") 대비 화면 높이 비율 */
 const TALLEST = Math.max(...Object.values(PRESENTATION).map((p) => p.bagHeight))
 
@@ -49,10 +53,10 @@ function HeroBooking({ list, size, onSize }: BookingProps) {
       <div className="hbook-field">
         <span className="hbook-label">사이즈</span>
         <div className="hbook-sizes" role="radiogroup" aria-label="사이즈">
-          {(list ?? []).map((c) => (
-            <button key={c.key} type="button" role="radio" aria-checked={size === c.key} onClick={() => onSize(c.key)}>
-              <b>{c.key}"</b>
-              <span>{c.usage.split('·')[0].trim()}</span>
+          {SIZES.map((k) => (
+            <button key={k} type="button" role="radio" aria-checked={size === k} onClick={() => onSize(k)}>
+              <b>{k}"</b>
+              <span>{list?.find((c) => c.key === k)?.usage.split('·')[0].trim() ?? SIZE_HINT[k]}</span>
             </button>
           ))}
         </div>
@@ -67,6 +71,7 @@ function HeroBooking({ list, size, onSize }: BookingProps) {
         {open && (
           <div className="hbook-cal">
             <Calendar
+              months={2}
               value={range}
               onChange={(r) => {
                 setRange(r)

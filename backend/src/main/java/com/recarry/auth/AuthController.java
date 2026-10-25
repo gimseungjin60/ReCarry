@@ -38,9 +38,11 @@ public class AuthController {
 	private final AppProperties props;
 	private final PasswordResetService resets;
 	private final EmailVerification verification;
+	private final SignupCodes codes;
 
 	public AuthController(AuthService auth, SessionCookies cookies, JwtDecoder decoder, UserRepository users,
-			AppProperties props, PasswordResetService resets, EmailVerification verification) {
+			AppProperties props, PasswordResetService resets, EmailVerification verification, SignupCodes codes) {
+		this.codes = codes;
 		this.verification = verification;
 		this.props = props;
 		this.resets = resets;
@@ -54,6 +56,18 @@ public class AuthController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public AuthResponse signup(@Valid @RequestBody SignupRequest req, HttpServletResponse res) {
 		return start(auth.signup(req), res);
+	}
+
+	/** 가입 화면용 이메일 인증번호 — 메일로 6자리, 응답은 확인에 쓸 challenge */
+	@PostMapping("/signup/email-code")
+	public AuthDtos.EmailCodeResponse emailCode(@Valid @RequestBody AuthDtos.EmailCodeRequest req) {
+		return new AuthDtos.EmailCodeResponse(codes.issue(req.email()));
+	}
+
+	/** 화면이 보여줄 로그인 · 가입 방법 (카카오 키가 있는가, 가입에 인증번호가 필요한가) */
+	@GetMapping("/options")
+	public AuthDtos.AuthOptions options() {
+		return new AuthDtos.AuthOptions(props.kakao().configured(), codes.enabled());
 	}
 
 	@PostMapping("/login")

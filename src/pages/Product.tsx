@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import Button from '@/components/Button'
 import SectionHeader from '@/components/SectionHeader'
@@ -9,16 +9,29 @@ import CarrierTimeline from '@/components/CarrierTimeline'
 import Calendar from '@/components/Calendar'
 import type { DateRange } from '@/components/Calendar'
 import { COMMON_SPEC, GRADE_SPEC, HOW_TO_USE, inspectionLabel, isCarrierSize } from '@/data/carriers'
+import { FAQ } from '@/data/home'
+import { FaqList } from '@/sections/home/Faq'
+import { api } from '@/lib/api'
 import { useCatalog } from '@/lib/catalog'
-import type { Carrier } from '@/data/types'
-import { fmt, nights, priceFor, stayLabel, won } from '@/lib/format'
+import type { Availability, Carrier } from '@/data/types'
+import { addDays, fmt, nights, priceFor, stayLabel, won, ymd } from '@/lib/format'
 import { useReveal } from '@/lib/motion'
 import { useTitle } from '@/lib/useTitle'
 
 /* PRD §4 Product Detail — prototype productHTML() 구조 그대로. */
 
 /** 패널 안 날짜 선택. 고른 날짜는 예약하기로 Booking 에 넘어간다. */
-function DateBox({ carrier, range, setRange }: { carrier: Carrier; range: DateRange; setRange: (r: DateRange) => void }) {
+function DateBox({
+  carrier,
+  range,
+  setRange,
+  avail,
+}: {
+  carrier: Carrier
+  range: DateRange
+  setRange: (r: DateRange) => void
+  avail: Availability | null
+}) {
   const [open, setOpen] = useState(false)
   const { start, end } = range
   const n = nights(start, end)
@@ -46,11 +59,31 @@ function DateBox({ carrier, range, setRange }: { carrier: Carrier; range: DateRa
           <Calendar value={range} onChange={change} />
         </div>
       )}
-      {n > 0 && (
-        <div className="pd-total" style={{ padding: '0 18px' }}>
-          <span className="muted">{stayLabel(n)}</span>
-          <b style={{ fontWeight: 500 }}>{won(priceFor(carrier, n))}</b>
-        </div>
+      {n > 0 && start && end && (
+        <dl className="sum pd-sum">
+          <div>
+            <dt>대여 요금 · {stayLabel(n)}</dt>
+            <dd>{won(priceFor(carrier, n))}</dd>
+          </div>
+          {avail && (
+            <div>
+              <dt>보증금 (반납 후 환불)</dt>
+              <dd>{won(avail.deposit)}</dd>
+            </div>
+          )}
+          <div>
+            <dt>도착 · 회수</dt>
+            <dd>
+              {fmt(addDays(start, -1))} · {fmt(end)}
+            </dd>
+          </div>
+          {avail && (
+            <div className="tot">
+              <dt>결제 예정 금액</dt>
+              <dd>{won(priceFor(carrier, n) + avail.deposit)}</dd>
+            </div>
+          )}
+        </dl>
       )}
     </div>
   )
@@ -65,6 +98,20 @@ export default function Product() {
   const catalog = useCatalog()
   const p = isCarrierSize(size) ? catalog.bySize(size) : undefined
   useReveal(p)
+  // 날짜를 고르면 그 기간의 대여 가능 대수 · 보증금 (서버 계산)
+  const [avail, setAvail] = useState<Availability[] | null>(null)
+  const { start, end } = range
+  useEffect(() => {
+    setAvail(null)
+    if (!start || !end) return
+    let alive = true
+    api<Availability[]>(`/api/carriers/availability?start=${ymd(start)}&end=${ymd(end)}`)
+      .then((a) => alive && setAvail(a))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [start, end])
 
   // 없는 사이즈로 들어오면(또는 카탈로그에 없으면) 조용히 컬렉션으로 되돌린다
   if (!isCarrierSize(size) || (catalog.list && !p)) {
@@ -88,6 +135,8 @@ export default function Product() {
   }
   // 보고 있던 캐리어(Carrier ID)를 우선 배정해 달라고 함께 넘긴다
   const book = () => navigate('/booking', { state: { size: p.key, carrierCode: p.id, ...range } })
+  const mine = avail?.find((a) => a.size === p.key) ?? null
+  const soldOut = mine?.available === 0
 
   const spec = [
     { k: '사이즈', v: p.inch },
@@ -126,6 +175,16 @@ export default function Product() {
               {p.usage} · {p.capacity}
             </p>
 
+            {/* 옵션 선택 — 사이즈를 바꿔도 고른 날짜는 유지된다 */}
+            <div className="pd-sizes" role="radiogroup" aria-label="사이즈">
+              {(catalog.list ?? []).map((c) => (
+                <Link key={c.key} to={`/product/${c.key}`} role="radio" aria-checked={c.key === p.key} replace>
+                  <b>{c.key}"</b>
+                  <span>{won(c.price)}~</span>
+                </Link>
+              ))}
+            </div>
+
             <div className="pd-price">
               <span className="p">{won(p.price)}</span>
               <span className="small">
@@ -133,13 +192,21 @@ export default function Product() {
               </span>
             </div>
 
-            <DateBox carrier={p} range={range} setRange={setRange} />
-            <Button block arrow onClick={book} style={{ marginTop: 12 }}>
-              예약하기
+            <DateBox carrier={p} range={range} setRange={setRange} avail={mine} />
+            <Button block arrow onClick={book} style={{ marginTop: 12 }} disabled={soldOut}>
+              {soldOut ? '이 기간에는 예약할 수 없습니다' : '예약하기'}
             </Button>
-            <p className="small" style={{ marginTop: 12 }}>
-              출발 전날 문 앞 배송 · 반납일 문 앞 회수
-            </p>
+            {soldOut && (
+              <p className="small" style={{ marginTop: 8 }}>
+                다른 날짜나 사이즈를 골라주세요.
+              </p>
+            )}
+            {/* 쇼핑몰 구매 버튼 아래의 혜택 · 안심 문구 자리 — 대여 정책 범위 안에서만 */}
+            <ul className="pd-trust">
+              <li>출발 전날 문 앞 배송 · 반납일 문 앞 회수</li>
+              <li>입금 전 무료 취소 · 배송 3일 전까지 전액 환불</li>
+              <li>보증금은 반납 검수 후 영업일 3일 안에 반환</li>
+            </ul>
 
             {/* 대표 캐리어(Carrier ID)의 실제 검수 기록. 기록이 없으면 통과로 꾸미지 않는다 */}
             {p.inspection.length ? (
@@ -162,11 +229,7 @@ export default function Product() {
                   INSPECTED {p.inspectedAt} · {p.inspection.filter((c) => c.passed).length} / {p.inspection.length} CHECKS
                 </p>
               </>
-            ) : (
-              <p className="small" style={{ marginTop: 40 }}>
-                {p.id} 의 항목별 검수 기록은 아직 등록되지 않았습니다.
-              </p>
-            )}
+            ) : null}
           </aside>
         </div>
 
@@ -219,6 +282,23 @@ export default function Product() {
           </div>
         </section>
 
+        <section className="pd-sec faq">
+          <div className="grid">
+            <div className="faq-l">
+              <SectionHeader eyebrow="FAQ" title={['빌리기 전에', '궁금한 것들.']} size="d-m" />
+              <p className="small" style={{ marginTop: 20 }}>
+                더 궁금하면{' '}
+                <Link className="link" to="/help">
+                  고객센터
+                </Link>
+              </p>
+            </div>
+            <div className="faq-r">
+              <FaqList items={FAQ} />
+            </div>
+          </div>
+        </section>
+
         <section className="pd-sec" style={{ paddingBottom: 'var(--space-10)' }}>
           <div className="pd-end" data-reveal>
             <h2 className="d-m">
@@ -240,7 +320,9 @@ export default function Product() {
           <div className="p">{won(p.price)}</div>
           <div className="small">2박 3일 기준</div>
         </div>
-        <Button onClick={book}>예약하기</Button>
+        <Button onClick={book} disabled={soldOut}>
+          예약하기
+        </Button>
       </div>
     </>
   )

@@ -64,6 +64,42 @@ class ApiIntegrationTest {
 		// 메일은 실제로 보내지 않고 CapturingMailer 가 받는다
 		r.add("recarry.mail.log-only", () -> "true");
 		r.add("recarry.mail.require-verified-email", () -> "true");
+		// 카카오 로그인은 가짜 카카오 서버(FAKE_KAKAO)로
+		r.add("recarry.kakao.client-id", () -> "test-client");
+		r.add("recarry.kakao.client-secret", () -> "test-secret");
+		r.add("recarry.kakao.auth-base", () -> "http://localhost:" + FAKE_KAKAO.getAddress().getPort());
+		r.add("recarry.kakao.api-base", () -> "http://localhost:" + FAKE_KAKAO.getAddress().getPort());
+	}
+
+	/** 인가 코드 → 카카오 회원 정보(JSON). 토큰은 코드를 그대로 돌려주고, /v2/user/me 는 그 토큰의 회원 정보를 준다 */
+	static final java.util.Map<String, String> KAKAO_USERS = new java.util.concurrent.ConcurrentHashMap<>();
+	static final com.sun.net.httpserver.HttpServer FAKE_KAKAO;
+	static {
+		try {
+			FAKE_KAKAO = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("localhost", 0), 0);
+		} catch (java.io.IOException e) {
+			throw new IllegalStateException(e);
+		}
+		FAKE_KAKAO.createContext("/oauth/token", ex -> {
+			String form = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			var code = java.util.regex.Pattern.compile("code=([^&]+)").matcher(form);
+			boolean ok = form.contains("client_secret=test-secret") && code.find() && KAKAO_USERS.containsKey(code.group(1));
+			reply(ex, ok ? 200 : 400, ok ? "{\"access_token\":\"" + code.group(1) + "\"}" : "{}");
+		});
+		FAKE_KAKAO.createContext("/v2/user/me", ex -> {
+			String auth = ex.getRequestHeaders().getFirst("Authorization");
+			String user = auth == null ? null : KAKAO_USERS.get(auth.replace("Bearer ", ""));
+			reply(ex, user == null ? 401 : 200, user == null ? "{}" : user);
+		});
+		FAKE_KAKAO.start();
+	}
+
+	static void reply(com.sun.net.httpserver.HttpExchange ex, int status, String body) throws java.io.IOException {
+		byte[] b = body.getBytes(StandardCharsets.UTF_8);
+		ex.getResponseHeaders().add("Content-Type", "application/json");
+		ex.sendResponseHeaders(status, b.length);
+		ex.getResponseBody().write(b);
+		ex.close();
 	}
 
 	/** 보낸 메일을 기억하는 Mailer — 비밀번호 재설정 코드를 테스트가 읽는다 */
@@ -122,6 +158,32 @@ class ApiIntegrationTest {
 	}
 
 	Res send(String method, String path, String session, Object body, boolean clientHeader) throws Exception {
+		if (path.equals("/api/auth/signup") && body instanceof java.util.Map<?, ?> m && m.get("email") instanceof String email
+				&& !m.containsKey("emailCode")) {
+			String[] code = emailCode(email);
+			if (code != null) {
+				java.util.Map<Object, Object> withCode = new java.util.HashMap<>(m);
+				withCode.put("emailChallenge", code[0]);
+				withCode.put("emailCode", code[1]);
+				body = withCode;
+			}
+		}
+		return rawSend(method, path, session, body, clientHeader);
+	}
+
+	/** 가입 인증번호를 받아 메일에서 읽는다 → {challenge, code}. 받을 수 없는 이메일(형식 오류 · 이미 가입)이면 null */
+	String[] emailCode(String email) throws Exception {
+		String key = email.trim().toLowerCase();
+		mails.lastBody.remove(key);
+		Res r = rawSend("POST", "/api/auth/signup/email-code", null, java.util.Map.of("email", email), true);
+		if (r.status() != 200) return null;
+		for (int i = 0; i < 50 && !mails.lastBody.getOrDefault(key, "").contains("인증번호"); i++) Thread.sleep(100);
+		var m = java.util.regex.Pattern.compile("인증번호는 ([0-9]{6})").matcher(mails.lastBody.get(key));
+		assertThat(m.find()).isTrue();
+		return new String[] { r.body().get("challenge").asString(), m.group(1) };
+	}
+
+	Res rawSend(String method, String path, String session, Object body, boolean clientHeader) throws Exception {
 		HttpRequest.Builder b = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
 			.header("Content-Type", "application/json");
 		if (session != null) b.header("Cookie", COOKIE + "=" + session);
@@ -941,13 +1003,17 @@ class ApiIntegrationTest {
 		String email = "verify-" + UUID.randomUUID() + "@test.recarry";
 		String token = call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
 			"name", "인증", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).session();
+		// 인증번호 도입 전에 가입해 인증하지 않은 회원
+		jdbc.update("UPDATE users SET email_verified_at = null WHERE email = ?", email);
 		assertThat(call("GET", "/api/users/me", token, null).body().get("emailVerified").asBoolean()).isFalse();
 		Res blocked = call("POST", "/api/bookings", token, booking("20", null, window(3), null));
 		assertThat(blocked.status()).isEqualTo(403);
 		assertThat(blocked.code()).isEqualTo("EMAIL_NOT_VERIFIED");
 
-		// 가입 때 인증 메일이 간다 — 링크의 토큰으로 인증
-		for (int i = 0; i < 50 && !mails.lastBody.containsKey(email); i++) Thread.sleep(100);
+		// My Page 에서 인증 메일을 다시 받는다 — 링크의 토큰으로 인증
+		mails.lastBody.remove(email);
+		assertThat(call("POST", "/api/users/me/verify-email", token, null).status()).isEqualTo(204);
+		for (int i = 0; i < 50 && !mails.lastBody.getOrDefault(email, "").contains("token="); i++) Thread.sleep(100);
 		var m = java.util.regex.Pattern.compile("token=([A-Za-z0-9._-]+)").matcher(mails.lastBody.get(email));
 		assertThat(m.find()).isTrue();
 		String link = m.group(1);
@@ -959,6 +1025,217 @@ class ApiIntegrationTest {
 		// 예약 접수 메일에는 입금 안내가 들어 있다
 		for (int i = 0; i < 50 && !mails.lastBody.getOrDefault(email, "").contains("입금 계좌"); i++) Thread.sleep(100);
 		assertThat(mails.lastBody.get(email)).contains("입금 계좌").contains("임시");
+	}
+
+	// ------------------------------------------------------------------ 가입 인증번호 · 카카오 로그인
+
+	@Test
+	void signup_requires_email_code() throws Exception {
+		JsonNode opts = call("GET", "/api/auth/options", null, null).body();
+		assertThat(opts.get("signupEmailCode").asBoolean()).isTrue();
+		assertThat(opts.get("kakao").asBoolean()).isTrue();
+
+		String email = "code-" + UUID.randomUUID() + "@test.recarry";
+		java.util.Map<String, Object> body = new java.util.HashMap<>(java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "인증번호", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
+		body.put("emailCode", "");   // 자동으로 붙이지 않게
+		Res none = call("POST", "/api/auth/signup", null, body);
+		assertThat(none.status()).isEqualTo(400);
+		assertThat(none.body().get("fields").has("emailCode")).isTrue();
+
+		String[] code = emailCode(email);
+		body.put("emailChallenge", code[0]);
+		body.put("emailCode", code[1].equals("000000") ? "000001" : "000000");
+		Res wrong = call("POST", "/api/auth/signup", null, body);
+		assertThat(wrong.code()).isEqualTo("INVALID_CODE");
+		assertThat(wrong.body().get("fields").get("emailCode").asString()).isNotBlank();
+		// 다른 이메일의 challenge 로는 통과하지 않는다
+		body.put("emailCode", code[1]);
+		body.put("email", "other-" + email);
+		assertThat(call("POST", "/api/auth/signup", null, body).code()).isEqualTo("INVALID_CODE");
+		body.put("email", email);
+		Res ok = call("POST", "/api/auth/signup", null, body);
+		assertThat(ok.status()).isEqualTo(201);
+		JsonNode u = ok.body().get("user");
+		assertThat(u.get("emailVerified").asBoolean()).isTrue();
+		assertThat(u.get("hasPassword").asBoolean()).isTrue();
+		assertThat(u.get("kakao").asBoolean()).isFalse();
+		assertThat(call("POST", "/api/bookings", ok.session(), booking("20", null, window(3), null)).status()).isEqualTo(201);
+		// 이미 가입한 이메일은 인증번호를 보내지 않는다
+		assertThat(rawSend("POST", "/api/auth/signup/email-code", null, java.util.Map.of("email", email), true).code()).isEqualTo("EMAIL_TAKEN");
+	}
+
+	/** 카카오 로그인 한 바퀴: start → (카카오) → callback. 결과 Location 과 쿠키들을 돌려준다 */
+	record Kakao(String location, java.util.Map<String, String> cookies) {}
+
+	Kakao kakao(String code, String returnTo, boolean tamperState) throws Exception {
+		HttpResponse<String> start = http.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port
+			+ "/api/auth/kakao/start?returnTo=" + java.net.URLEncoder.encode(returnTo, StandardCharsets.UTF_8))).build(),
+			HttpResponse.BodyHandlers.ofString());
+		assertThat(start.statusCode()).isEqualTo(302);
+		String loc = start.headers().firstValue("location").orElseThrow();
+		assertThat(loc).contains("/oauth/authorize").contains("client_id=test-client").contains("redirect_uri=");
+		var st = java.util.regex.Pattern.compile("state=([^&]+)").matcher(loc);
+		assertThat(st.find()).isTrue();
+		String state = tamperState ? st.group(1) + "x" : st.group(1);
+		String stateCookie = cookies(start).get("recarry_kakao_state");
+		assertThat(start.headers().allValues("set-cookie").get(0)).contains("HttpOnly").contains("SameSite=Lax").contains("Path=/api/auth/kakao");
+		HttpResponse<String> cb = http.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port
+			+ "/api/auth/kakao/callback?code=" + code + "&state=" + state)).header("Cookie", "recarry_kakao_state=" + stateCookie).build(),
+			HttpResponse.BodyHandlers.ofString());
+		assertThat(cb.statusCode()).isEqualTo(302);
+		return new Kakao(cb.headers().firstValue("location").orElseThrow(), cookies(cb));
+	}
+
+	static java.util.Map<String, String> cookies(HttpResponse<?> r) {
+		java.util.Map<String, String> m = new java.util.HashMap<>();
+		for (String c : r.headers().allValues("set-cookie")) {
+			String nv = c.substring(0, c.indexOf(';'));
+			m.put(nv.substring(0, nv.indexOf('=')), nv.substring(nv.indexOf('=') + 1));
+		}
+		return m;
+	}
+
+	static String kakaoUser(long id, String email, boolean verified, String name, String phone) {
+		return "{\"id\":" + id + ",\"kakao_account\":{\"email\":\"" + email + "\",\"is_email_verified\":" + verified
+			+ ",\"is_email_valid\":true,\"name\":\"" + name + "\",\"phone_number\":\"" + phone + "\"}}";
+	}
+
+	Res withCookie(String method, String path, String cookie, Object body) throws Exception {
+		HttpRequest.Builder b = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+			.header("Content-Type", "application/json").header("X-Recarry-Client", "web").header("Cookie", cookie);
+		b.method(method, body == null ? HttpRequest.BodyPublishers.noBody()
+			: HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body), StandardCharsets.UTF_8));
+		HttpResponse<String> r = http.send(b.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+		return new Res(r.statusCode(), r.body().isEmpty() ? json.nullNode() : json.readTree(r.body()), r.headers().allValues("set-cookie"));
+	}
+
+	@Test
+	void kakao_new_user_signs_up_then_logs_in() throws Exception {
+		long id = 9_000_000_000L + WINDOW.incrementAndGet();
+		String email = "kakao-" + UUID.randomUUID() + "@test.recarry";
+		KAKAO_USERS.put("code-new-" + id, kakaoUser(id, email, true, "카카오", "+82 10-9876-5432"));
+
+		// 처음: 가입 대기 쿠키를 두고 가입 화면으로 (개인정보는 URL 에 없다)
+		Kakao first = kakao("code-new-" + id, "/booking", false);
+		assertThat(first.location()).isEqualTo("/signup?via=kakao");
+		String pending = first.cookies().get("recarry_kakao_pending");
+		assertThat(pending).isNotBlank();
+		assertThat(first.cookies()).doesNotContainKey(COOKIE);
+		JsonNode view = withCookie("GET", "/api/auth/kakao/pending", "recarry_kakao_pending=" + pending, null).body();
+		assertThat(view.get("email").asString()).isEqualTo(email);
+		assertThat(view.get("phone").asString()).isEqualTo("010-9876-5432");
+		assertThat(view.get("returnTo").asString()).isEqualTo("/booking");
+		assertThat(view.has("kakaoId")).isFalse();
+		// 위조한 쿠키는 통하지 않는다
+		assertThat(withCookie("GET", "/api/auth/kakao/pending", "recarry_kakao_pending=" + pending + "x", null).status()).isEqualTo(404);
+		assertThat(call("POST", "/api/auth/kakao/signup", null, java.util.Map.of("email", email, "name", "카카오",
+			"phone", "010-9876-5432", "agreeTerms", true, "agreePrivacy", true)).code()).isEqualTo("NO_PENDING");
+
+		// 카카오가 확인한 이메일 그대로 가입 → 인증번호 없이 인증된 계정
+		Res s = withCookie("POST", "/api/auth/kakao/signup", "recarry_kakao_pending=" + pending, java.util.Map.of("email", email,
+			"name", "카카오", "phone", "010-9876-5432", "agreeTerms", true, "agreePrivacy", true));
+		assertThat(s.status()).isEqualTo(201);
+		JsonNode u = s.body().get("user");
+		assertThat(u.get("kakao").asBoolean()).isTrue();
+		assertThat(u.get("hasPassword").asBoolean()).isFalse();
+		assertThat(u.get("emailVerified").asBoolean()).isTrue();
+		assertThat(u.get("consentRequired").asBoolean()).isFalse();
+		String session = s.session();
+		assertThat(call("POST", "/api/bookings", session, booking("20", null, window(3), null)).status()).isEqualTo(201);
+
+		// 다시 카카오로 → 바로 로그인하고 원래 가던 곳으로
+		Kakao again = kakao("code-new-" + id, "/mypage", false);
+		assertThat(again.location()).isEqualTo("/mypage");
+		assertThat(again.cookies().get(COOKIE)).isNotBlank();
+		assertThat(call("GET", "/api/users/me", again.cookies().get(COOKIE), null).body().get("email").asString()).isEqualTo(email);
+
+		// 비밀번호가 없는 계정: 비밀번호 변경은 안내, 탈퇴는 비밀번호 없이
+		assertThat(call("POST", "/api/users/me/password", session, java.util.Map.of("currentPassword", "x", "newPassword", "passw0rd!2")).code())
+			.isEqualTo("NO_PASSWORD");
+		String number = call("GET", "/api/bookings", session, null).body().get(0).get("bookingNumber").asString();
+		call("POST", "/api/bookings/" + number + "/cancel", session, null);
+		assertThat(call("POST", "/api/users/me/withdraw", session, java.util.Map.of()).status()).isEqualTo(204);
+		// 탈퇴하면 같은 카카오 계정으로 새로 가입할 수 있다
+		assertThat(kakao("code-new-" + id, "/", false).location()).isEqualTo("/signup?via=kakao");
+	}
+
+	@Test
+	void kakao_links_existing_account_by_verified_email() throws Exception {
+		// 인증번호로 가입한 기존 회원 — 같은 이메일의 카카오로 들어오면 연결, 비밀번호는 그대로
+		String email = "link-" + UUID.randomUUID() + "@test.recarry";
+		assertThat(call("POST", "/api/auth/signup", null, java.util.Map.of("email", email, "password", "passw0rd!",
+			"name", "기존", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).status()).isEqualTo(201);
+		long id = 9_100_000_000L + WINDOW.incrementAndGet();
+		KAKAO_USERS.put("code-link-" + id, kakaoUser(id, email.toUpperCase(), true, "기존", "010-1234-5678"));
+		Kakao k = kakao("code-link-" + id, "/booking", false);
+		assertThat(k.location()).isEqualTo("/booking");
+		JsonNode me = call("GET", "/api/users/me", k.cookies().get(COOKIE), null).body();
+		assertThat(me.get("kakao").asBoolean()).isTrue();
+		assertThat(me.get("hasPassword").asBoolean()).isTrue();
+		assertThat(call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "passw0rd!")).status()).isEqualTo(200);
+
+		// 이메일 인증을 안 한 계정에 연결하면: 남이 먼저 만든 계정일 수 있으니 비밀번호를 무효로 하고 옛 로그인을 끊는다
+		String squat = "squat-" + UUID.randomUUID() + "@test.recarry";
+		String old = call("POST", "/api/auth/signup", null, java.util.Map.of("email", squat, "password", "passw0rd!",
+			"name", "선점", "phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).session();
+		jdbc.update("UPDATE users SET email_verified_at = null WHERE email = ?", squat);
+		Thread.sleep(1100);   // 토큰 iat 는 초 단위
+		long id2 = 9_200_000_000L + WINDOW.incrementAndGet();
+		KAKAO_USERS.put("code-squat-" + id2, kakaoUser(id2, squat, true, "주인", "010-1234-5678"));
+		Kakao owner = kakao("code-squat-" + id2, "/", false);
+		assertThat(owner.location()).isEqualTo("/");
+		assertThat(call("GET", "/api/users/me", old, null).status()).isEqualTo(401);
+		assertThat(call("POST", "/api/auth/login", null, java.util.Map.of("email", squat, "password", "passw0rd!")).status()).isEqualTo(401);
+		assertThat(call("GET", "/api/users/me", owner.cookies().get(COOKIE), null).body().get("hasPassword").asBoolean()).isFalse();
+
+		// 카카오가 이메일을 확인하지 않았으면 연결하지 않고 가입 화면으로 (이메일을 바꾸면 인증번호 필요)
+		long id3 = 9_300_000_000L + WINDOW.incrementAndGet();
+		KAKAO_USERS.put("code-unv-" + id3, kakaoUser(id3, email, false, "미인증", "010-1234-5678"));
+		Kakao unv = kakao("code-unv-" + id3, "/", false);
+		assertThat(unv.location()).isEqualTo("/signup?via=kakao");
+		String pending = "recarry_kakao_pending=" + unv.cookies().get("recarry_kakao_pending");
+		assertThat(withCookie("POST", "/api/auth/kakao/signup", pending, java.util.Map.of("email", email, "name", "미인증",
+			"phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true)).code()).isEqualTo("EMAIL_TAKEN");
+		String fresh = "fresh-" + UUID.randomUUID() + "@test.recarry";
+		Res noCode = withCookie("POST", "/api/auth/kakao/signup", pending, java.util.Map.of("email", fresh, "name", "미인증",
+			"phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true));
+		assertThat(noCode.body().get("fields").has("emailCode")).isTrue();
+		String[] code = emailCode(fresh);
+		Res withCode = withCookie("POST", "/api/auth/kakao/signup", pending, java.util.Map.of("email", fresh, "name", "미인증",
+			"phone", "010-1234-5678", "agreeTerms", true, "agreePrivacy", true, "emailChallenge", code[0], "emailCode", code[1]));
+		assertThat(withCode.status()).isEqualTo(201);
+		assertThat(withCode.body().get("user").get("emailVerified").asBoolean()).isTrue();
+	}
+
+	@Test
+	void kakao_rejects_bad_state_and_never_links_admin() throws Exception {
+		long id = 9_400_000_000L + WINDOW.incrementAndGet();
+		KAKAO_USERS.put("code-state-" + id, kakaoUser(id, "state-" + id + "@test.recarry", true, "상태", "010-1234-5678"));
+		Kakao bad = kakao("code-state-" + id, "/", true);
+		assertThat(bad.location()).isEqualTo("/login?error=kakao");
+		assertThat(bad.cookies()).doesNotContainKey(COOKIE);
+		// 다른 사이트로 보내는 returnTo 는 / 로
+		assertThat(kakao("code-state-" + id, "//evil.example", false).cookies()).containsKey("recarry_kakao_pending");
+		assertThat(withCookie("GET", "/api/auth/kakao/pending", "recarry_kakao_pending="
+			+ kakao("code-state-" + id, "https://evil.example", false).cookies().get("recarry_kakao_pending"), null)
+			.body().get("returnTo").asString()).isEqualTo("/");
+		// 카카오 오류 (모르는 코드)
+		assertThat(kakao("unknown-code", "/", false).location()).isEqualTo("/login?error=kakao");
+
+		long admin = 9_500_000_000L + WINDOW.incrementAndGet();
+		KAKAO_USERS.put("code-admin-" + admin, kakaoUser(admin, ADMIN_EMAIL, true, "관리자", "010-1234-5678"));
+		Kakao a = kakao("code-admin-" + admin, "/admin", false);
+		assertThat(a.location()).isEqualTo("/login?error=kakao_admin");
+		assertThat(a.cookies()).doesNotContainKey(COOKIE);
+		assertThat(jdbc.queryForObject("SELECT kakao_id FROM users WHERE email = ?", Long.class, ADMIN_EMAIL)).isNull();
+	}
+
+	@Test
+	void kakao_phone_numbers_are_normalized() {
+		assertThat(com.recarry.auth.KakaoAuth.phone("+82 10-1234-5678")).isEqualTo("010-1234-5678");
+		assertThat(com.recarry.auth.KakaoAuth.phone("+82 2-123-4567")).isEqualTo("+82 2-123-4567");
+		assertThat(com.recarry.auth.KakaoAuth.phone(null)).isNull();
 	}
 
 	// ------------------------------------------------------------------ 관리자 2단계 인증 · 접속기록

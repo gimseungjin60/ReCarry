@@ -1,9 +1,9 @@
-/** Navbar / MenuSheet / Footer 가 공유하는 홈 내부 앵커 */
+/** Navbar / MenuSheet / Footer 가 공유하는 메뉴. '/' 로 시작하면 페이지, 아니면 홈 내부 앵커 */
 export const NAV_LINKS = [
   { id: 'collection', label: '사이즈 · 가격', ko: '사이즈 · 가격' },
-  { id: 'how', label: '이용 방법', ko: '이용 방법' },
   { id: 'story', label: '검수 기록', ko: '검수 기록' },
-  { id: 'faq', label: 'FAQ', ko: '자주 묻는 질문' },
+  { id: '/guide', label: '이용 안내', ko: '이용 안내' },
+  { id: '/help', label: '고객센터', ko: '고객센터' },
 ]
 
 /** Prototype 고지 — 가격·정책·재고가 샘플 데이터임을 한 곳에서만 알린다 */

@@ -44,6 +44,10 @@ services:
         sync: false
       - key: BANK_HOLDER
         sync: false
+      - key: KAKAO_CLIENT_ID           # 카카오 로그인 REST API 키 — 두 값을 넣으면 켜진다 (Redirect URI: APP_URL/api/auth/kakao/callback)
+        sync: false
+      - key: KAKAO_CLIENT_SECRET
+        sync: false
       - key: COOKIE_SAME_SITE          # Vercel rewrite(같은 origin) 구성
         value: Lax
       - key: DB_POOL_SIZE

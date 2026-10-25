@@ -13,6 +13,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	boolean existsByEmail(String email);
 
+	Optional<User> findByKakaoId(Long kakaoId);
+
 	/** 이메일 찾기 — 이름이 같고 휴대폰 번호의 숫자가 같은 활성 계정 (하이픈·공백 무시) */
 	@Query(value = """
 		SELECT email FROM users

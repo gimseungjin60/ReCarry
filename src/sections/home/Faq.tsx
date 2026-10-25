@@ -4,6 +4,16 @@ import { FAQ } from '@/data/home'
 
 /* 자주 묻는 질문 — 대여 정책(/policy)의 핵심만. 정확한 기준은 정책 문서가 우선한다. */
 
+/** 질문 · 답 접기 목록 — 홈 · 상품 상세 · 고객센터가 같이 쓴다 */
+export function FaqList({ items }: { items: { q: string; a: string }[] }) {
+  return items.map((f) => (
+    <details key={f.q}>
+      <summary>{f.q}</summary>
+      <p>{f.a}</p>
+    </details>
+  ))
+}
+
 export default function Faq() {
   return (
     <section className="sec" id="faq">
@@ -19,12 +29,7 @@ export default function Faq() {
           </p>
         </div>
         <div className="faq-r" data-reveal>
-          {FAQ.map((f) => (
-            <details key={f.q}>
-              <summary>{f.q}</summary>
-              <p>{f.a}</p>
-            </details>
-          ))}
+          <FaqList items={FAQ} />
         </div>
       </div>
     </section>

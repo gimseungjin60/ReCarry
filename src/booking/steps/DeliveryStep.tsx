@@ -19,9 +19,11 @@ interface Props {
   form: DeliveryForm
   onChange: (f: DeliveryForm) => void
   range: DateRange
+  /** 예: 최근 배송지를 불러왔다는 안내 */
+  hint?: string
 }
 
-export default function DeliveryStep({ form, onChange, range }: Props) {
+export default function DeliveryStep({ form, onChange, range, hint }: Props) {
   const set = (k: keyof DeliveryForm) => (e: { target: { value: string } }) => onChange({ ...form, [k]: e.target.value })
   const arrive = range.start ? fmt(addDays(range.start, -1)) : '출발 전날'
   const collect = range.end ? fmt(range.end) : '반납일'
@@ -65,7 +67,7 @@ export default function DeliveryStep({ form, onChange, range }: Props) {
             주소 검색
           </button>
         </div>
-        {findErr && <span className="small">{findErr}</span>}
+        {(findErr || hint) && <span className="small">{findErr || hint}</span>}
       </div>
       <label className="field">
         <span className="l">상세 주소</span>

@@ -56,7 +56,8 @@ public class UserController {
 		@NotNull(message = "이용약관에 동의해주세요.") @AssertTrue(message = "이용약관에 동의해주세요.") Boolean agreeTerms,
 		@NotNull(message = "개인정보 수집·이용에 동의해주세요.") @AssertTrue(message = "개인정보 수집·이용에 동의해주세요.") Boolean agreePrivacy) {}
 
-	public record WithdrawRequest(@NotBlank(message = "비밀번호를 입력해주세요.") @Size(max = 72) String password) {}
+	/** password: 비밀번호가 있는 계정만 (카카오로 가입한 계정은 비어 있어도 된다) */
+	public record WithdrawRequest(@Size(max = 72) String password) {}
 
 	@GetMapping("/me")
 	public UserResponse me(@AuthenticationPrincipal Jwt jwt) {

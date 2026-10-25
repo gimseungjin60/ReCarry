@@ -58,6 +58,9 @@ public class UserService {
 	/** 다른 기기의 로그인은 끊긴다. 호출한 쪽이 새 토큰을 발급한다. */
 	public User changePassword(Long id, String current, String next) {
 		User u = get(id);
+		if (!u.isPasswordSet()) {
+			throw ApiException.badRequest("NO_PASSWORD", "카카오로 가입한 계정입니다. 비밀번호 찾기로 비밀번호를 만들 수 있습니다.");
+		}
 		checkPassword(u, current);
 		u.changePassword(encoder.encode(next), clock.instant());
 		return u;
@@ -65,7 +68,8 @@ public class UserService {
 
 	public void withdraw(Long id, String password) {
 		User u = get(id);
-		checkPassword(u, password);
+		// 카카오로 가입해 비밀번호가 없는 계정은 로그인한 세션만으로 탈퇴한다
+		if (u.isPasswordSet()) checkPassword(u, password);
 		if (u.getRole() == Role.ADMIN) {
 			// 마지막 관리자가 사라지는 것을 막는다 — 관리자 계정 정리는 운영자가 DB/환경변수로 한다
 			throw ApiException.conflict("ADMIN_CANNOT_WITHDRAW", "관리자 계정은 탈퇴할 수 없습니다.");
@@ -78,7 +82,7 @@ public class UserService {
 
 	private void checkPassword(User u, String raw) {
 		// 401 이 아니라 400 — 프론트는 401 을 "로그아웃됨"으로 처리한다
-		if (!encoder.matches(raw, u.getPasswordHash())) {
+		if (raw == null || !encoder.matches(raw, u.getPasswordHash())) {
 			throw ApiException.badRequest("WRONG_PASSWORD", "현재 비밀번호가 올바르지 않습니다.");
 		}
 	}

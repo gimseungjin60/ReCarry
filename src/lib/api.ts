@@ -74,3 +74,6 @@ function safeJson(text: string): unknown {
     return null
   }
 }
+
+/** 카카오 로그인 시작 주소 — 페이지 이동(fetch 아님)으로 연다. returnTo: 로그인 후 돌아올 화면 */
+export const kakaoStartUrl = (returnTo: string) => `${BASE}/api/auth/kakao/start?returnTo=${encodeURIComponent(returnTo)}`

@@ -1,13 +1,8 @@
 package com.recarry.auth;
 
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.Base64;
 
-import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 
 import org.springframework.stereotype.Service;
@@ -80,8 +75,7 @@ public class EmailVerification {
 			throw invalid();
 		}
 		User u = users.findById(userId).filter(x -> x.getDeletedAt() == null).orElseThrow(EmailVerification::invalid);
-		byte[] expected = sign(userId, u.getEmail(), exp).getBytes(StandardCharsets.US_ASCII);
-		if (!MessageDigest.isEqual(expected, p[2].getBytes(StandardCharsets.US_ASCII))) throw invalid();
+		if (!Hmac.matches(key, "verify-email:" + userId + ":" + u.getEmail() + ":" + exp, p[2])) throw invalid();
 		if (clock.instant().getEpochSecond() > exp) {
 			throw ApiException.badRequest("TOKEN_EXPIRED", "인증 링크가 만료되었습니다. My Page 에서 인증 메일을 다시 받아주세요.");
 		}
@@ -89,14 +83,7 @@ public class EmailVerification {
 	}
 
 	private String sign(long userId, String email, long exp) {
-		try {
-			Mac mac = Mac.getInstance("HmacSHA256");
-			mac.init(key);
-			byte[] h = mac.doFinal(("verify-email:" + userId + ":" + email + ":" + exp).getBytes(StandardCharsets.UTF_8));
-			return Base64.getUrlEncoder().withoutPadding().encodeToString(h);
-		} catch (GeneralSecurityException e) {
-			throw new IllegalStateException(e);
-		}
+		return Hmac.sign(key, "verify-email:" + userId + ":" + email + ":" + exp);
 	}
 
 	private static ApiException invalid() {

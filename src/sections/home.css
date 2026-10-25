@@ -42,7 +42,7 @@
 .hbook-date .v{font-size:18px;font-weight:700;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hbook-date .hint{font-size:13px;color:var(--ink-muted);margin-top:-4px}
 .hbook-go{height:auto;min-height:72px;padding:0 30px;border-radius:16px;font-size:18px}
-.hbook-cal{position:absolute;top:calc(100% + 14px);left:0;width:400px;max-width:calc(100vw - 40px);z-index:20;background:#fff;color:var(--ink);border-radius:var(--radius-lg);padding:20px;border:1px solid var(--hairline);box-shadow:0 24px 48px -16px rgba(6,12,60,.35)}
+.hbook-cal{position:absolute;top:calc(100% + 14px);left:0;width:720px;max-width:calc(100vw - 40px);z-index:20;background:#fff;color:var(--ink);border-radius:var(--radius-lg);padding:20px;border:1px solid var(--hairline);box-shadow:0 24px 48px -16px rgba(6,12,60,.35)}
 
 /* ---------- collection ---------- */
 .col-head{align-items:end}

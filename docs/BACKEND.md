@@ -102,41 +102,65 @@ REQUESTED ──admin──▶ CONFIRMED ──admin──▶ IN_USE ──admin
 
 ---
 
-## 7. DB schema (요약 — 원본은 `backend/src/main/resources/db/migration`)
+## 7. DB schema (요약 — 원본은 `backend/src/main/resources/db/migration`, V1~V9)
 
 | 테이블 | 주요 컬럼 |
 |---|---|
-| `users` | id, email(unique, 소문자), password_hash(BCrypt), name, phone, role(USER/ADMIN), created_at, updated_at |
+| `users` | id, email(unique, 소문자), password_hash(BCrypt), password_set, kakao_id(unique), name, phone, role(USER/ADMIN), terms/privacy 동의 버전 · 시각, email_verified_at, sessions_valid_after, totp_*, deleted_at |
 | `carrier_models` | id, size(unique '20'/'24'/'28'), name, inch, capacity, usage, dims, weight, price, extra_night_price, headline, description |
 | `carriers` | id, model_id FK, carrier_code(unique), grade(A/B), status, collected_from, repair_summary, inspected_at, featured |
-| `carrier_events` | id, carrier_id FK, event_date, type, title, detail, sort_order |
-| `bookings` | id, booking_number(unique), user_id FK, carrier_id FK, start_date, end_date, nights, occupied(생성 컬럼), recipient_name, phone, address, address_detail, request_message, base_price, extra_price, total_price, status, cancelled_at, created_at, updated_at |
+| `carrier_inspection_checks` · `carrier_events` | 항목별 검수 결과 · Carrier Story |
+| `bookings` | id, booking_number(unique), user_id FK, carrier_id FK, start/end_date, nights, occupied(생성 컬럼), 받는 분 · 배송지, base/extra/total_price, deposit, status, cancel_reason, cancelled_at, paid_at · paid_amount · payer_name, refund_amount · refunded_at, deposit_deduction · deposit_note · deposit_settled_at |
+| `admin_audit_logs` · `password_reset_codes` | 관리자 변경 · 조회 기록, 비밀번호 재설정 코드(해시) |
 
-제약: 가격 ≥ 0, `end_date > start_date`, enum 값 CHECK, 위 배타 제약.
+제약:
+- 가격 ≥ 0, `end_date > start_date`, enum CHECK.
+- 예약 겹침 배타 제약 `bookings_no_overlap`.
+- 입금 · 환불 · 보증금 금액 CHECK (V8).
+- 새 테이블은 모두 RLS + anon/authenticated REVOKE (V2 참고).
 
 ---
 
-## 8. API
+## 8. API (2026-10-25 기준 전체)
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/auth/signup` | public | 회원가입 → token |
-| POST | `/api/auth/login` | public | 로그인 → token |
-| GET | `/api/users/me` | USER | 내 정보 |
-| GET | `/api/carriers` `?size=` | public | 사이즈별 상품 + 대표 캐리어 + 운영 가능 대수 |
-| GET | `/api/carriers/{code}` | public | 캐리어 한 대 (Carrier ID) + 타임라인 |
-| GET | `/api/carriers/availability` `?start&end` | public | 기간 내 사이즈별 예약 가능 대수 · 금액 |
-| POST | `/api/bookings` | USER | 예약 요청 생성 |
-| GET | `/api/bookings` | USER | 내 예약 목록 |
-| GET | `/api/bookings/{bookingNumber}` | USER(본인) | 내 예약 상세 |
-| POST | `/api/bookings/{bookingNumber}/cancel` | USER(본인) | `REQUESTED` 예약 취소 |
-| GET | `/api/admin/carriers` | ADMIN | 전체 캐리어 + 표시 상태 |
-| PATCH | `/api/admin/carriers/{id}/status` | ADMIN | 운영 상태 변경 |
-| GET | `/api/admin/bookings` `?status=` | ADMIN | 전체 예약 |
-| GET | `/api/admin/bookings/{bookingNumber}` | ADMIN | 예약 상세 |
-| PATCH | `/api/admin/bookings/{bookingNumber}/status` | ADMIN | 예약 상태 변경 (전이 규칙 검사) |
+| GET | `/api/health` | public | DB select 1 (keepalive 가 10분마다 부른다) |
+| GET | `/api/auth/session` | public | 로그인 여부 (`{user}` 또는 `{user:null}`) |
+| GET | `/api/auth/options` | public | `{kakao, signupEmailCode}` — 서버 설정에 따라 켜지는 가입 수단 |
+| POST | `/api/auth/signup/email-code` | public | 가입 인증번호 메일 → `{challenge}` (10분, 이메일당 15분 3회) |
+| POST | `/api/auth/signup` | public | 회원가입 (+ `emailChallenge` · `emailCode`, 필수 동의) → 세션 쿠키 |
+| POST | `/api/auth/login` · `/logout` | public | 로그인(관리자 2단계 OTP) · 로그아웃 |
+| GET | `/api/auth/kakao/start?returnTo=` | public | 카카오 OAuth 시작 (302). 키가 없으면 `/login?error=kakao_off` |
+| GET | `/api/auth/kakao/callback` | public | 카카오 → 로그인 · 같은 이메일 계정 연결 · 가입서(`/signup?via=kakao`) 로 302 |
+| GET | `/api/auth/kakao/pending` | public | 카카오 가입서 미리 채울 정보 (httpOnly 쿠키에서) |
+| POST | `/api/auth/kakao/signup` | public | 카카오 가입 완료 (동의 · 필요 시 인증번호) |
+| POST | `/api/auth/verify-email` | public | 기존 회원 이메일 인증 링크 |
+| POST | `/api/auth/password-reset/request` · `/confirm` · `/api/auth/find-email` | public | 비밀번호 재설정 코드 · 가입 이메일 찾기 |
+| GET · PATCH | `/api/users/me` | USER | 내 정보 · 이름/연락처 수정 |
+| POST | `/api/users/me/consent` · `/password` · `/withdraw` · `/verify-email` | USER | 재동의 · 비밀번호 변경(카카오 계정은 `NO_PASSWORD`) · 탈퇴 · 인증 메일 재발송 |
+| GET | `/api/carriers` · `/api/carriers/{code}` · `/api/carriers/availability?start&end` | public | 카탈로그 · Carrier ID · 기간별 예약 가능 대수 · 금액 · 보증금 |
+| POST · GET | `/api/bookings` | USER | 예약 요청(서버 가격 재계산, 인증 · 동의 확인) · 내 예약 |
+| GET | `/api/bookings/{no}` | USER(본인) | 상세 — 입금 안내 · 취소 가능 · 환불 미리보기 포함 |
+| POST | `/api/bookings/{no}/cancel` | USER(본인) | 예약 요청 · 배송 전 확정 예약 취소 (환불액 서버 계산) |
+| GET | `/api/admin/carriers` · POST · PATCH `{id}` · `{id}/status` · `{id}/inspection` · `{id}/events` | ADMIN | 캐리어 등록 · 수정 · 운영 상태 · 검수 · Story |
+| PATCH | `/api/admin/carrier-models/{size}` | ADMIN | 상품 가격 · 문구 |
+| GET | `/api/admin/bookings` · `{no}` | ADMIN | 예약 목록 · 상세 (조회 기록 남음) |
+| PATCH | `/api/admin/bookings/{no}/status` | ADMIN | 상태 변경 (확정은 불가 → 입금 확인), 취소 시 환불액 |
+| POST | `/api/admin/bookings/{no}/payment` · `/refund-done` · `/deposit` | ADMIN | 입금 확인 → 확정 · 환불 송금 완료 · 보증금 정산 |
+| GET | `/api/admin/audit-logs?kind=CHANGE\|VIEW` | ADMIN | 변경 · 조회 기록 |
+| GET · POST | `/api/admin/2fa` · `/setup` · `/enable` · `/disable` | ADMIN | 2단계 인증 |
 
 에러 형식: `{ "code": "CARRIER_UNAVAILABLE", "message": "...", "fields": { ... } }`
+
+### 카카오 로그인 메모
+
+- 키: `KAKAO_CLIENT_ID`(REST API 키) · `KAKAO_CLIENT_SECRET`. 둘 다 있어야 켜진다 (`/api/auth/options.kakao`).
+- Redirect URI = `APP_URL + /api/auth/kakao/callback` — 카카오 콘솔에 같은 값을 등록한다.
+- state · 가입 대기 정보는 httpOnly · SameSite=Lax 쿠키(path `/api/auth/kakao`). 개인정보를 URL 에 싣지 않는다.
+- 계정 연결:
+  - 카카오가 "인증된 이메일"이라고 할 때만 같은 이메일 계정에 연결한다. 관리자 계정은 연결하지 않는다.
+  - 연결 대상이 이메일 미인증 계정이면, 그 비밀번호를 무효화하고 기존 로그인을 끊는다 (가입 선점 공격 방지).
 
 ---
 
@@ -150,7 +174,7 @@ REQUESTED ──admin──▶ CONFIRMED ──admin──▶ IN_USE ──admin
 | 사용자 테이블 | `auth.users` + 프로필 테이블 동기화 | `users` 하나 |
 | 로컬 개발 | Supabase 프로젝트 필요 | Postgres 만 있으면 됨 |
 | 종속성 | supabase-js SDK, JWKS 검증 | Spring 표준 (oauth2-resource-server) |
-| 소셜 로그인 | 쉬움 | 추후 추가 필요 |
+| 소셜 로그인 | 쉬움 | 카카오 직접 구현 (OAuth code flow, 2026-10-25) |
 
 Supabase 는 **PostgreSQL 호스팅으로만** 쓴다. 비밀번호는 Spring DB 에 BCrypt 로 한 번만 저장한다.
 

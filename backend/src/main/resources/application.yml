@@ -66,6 +66,11 @@ recarry:
     bank-name: ${BANK_NAME:}
     bank-account: ${BANK_ACCOUNT:}
     bank-holder: ${BANK_HOLDER:}
+  kakao:                           # 카카오 로그인 — 두 값을 넣으면 켜진다 (developers.kakao.com · Redirect URI = APP_URL/api/auth/kakao/callback)
+    client-id: ${KAKAO_CLIENT_ID:}         # REST API 키
+    client-secret: ${KAKAO_CLIENT_SECRET:} # 보안 > Client Secret
+    auth-base: https://kauth.kakao.com
+    api-base: https://kapi.kakao.com
   app-url: ${APP_URL:http://localhost:5173}   # 메일 속 링크(이메일 인증 등)의 사이트 주소
   legal:                           # 가입 시 동의받는 문서 버전 (users 에 기록) = 화면 문서의 시행일. src/data/legal.ts 와 같이 바꾼다
     terms-version: "2026-10-25"

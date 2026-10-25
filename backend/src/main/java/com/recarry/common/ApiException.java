@@ -7,6 +7,8 @@ public class ApiException extends RuntimeException {
 
 	private final HttpStatus status;
 	private final String code;
+	/** 입력 칸 하나에 대한 오류면 그 칸 이름 — 응답 fields 에 메시지를 함께 넣는다 */
+	private String field;
 
 	public ApiException(HttpStatus status, String code, String message) {
 		super(message);
@@ -20,6 +22,15 @@ public class ApiException extends RuntimeException {
 
 	public String code() {
 		return code;
+	}
+
+	public String field() {
+		return field;
+	}
+
+	public ApiException field(String name) {
+		this.field = name;
+		return this;
 	}
 
 	public static ApiException notFound(String code, String message) {

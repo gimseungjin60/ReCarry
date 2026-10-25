@@ -85,6 +85,10 @@ export interface User {
   emailVerified: boolean
   /** 메일 인증을 해야 예약할 수 있음 (서버가 메일을 보낼 수 있는 환경에서만 true) */
   needsEmailVerification: boolean
+  /** 카카오 계정이 연결됨 */
+  kakao: boolean
+  /** 비밀번호가 있음 — 카카오로 가입한 계정은 비밀번호 찾기로 만들기 전까지 false */
+  hasPassword: boolean
 }
 
 /** 로그인·가입 응답. 토큰은 본문에 없다 — httpOnly 쿠키로만 온다 */

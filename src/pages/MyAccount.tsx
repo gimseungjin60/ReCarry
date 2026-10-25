@@ -9,8 +9,7 @@ import { useTitle } from '@/lib/useTitle'
 
 /* 내 계정 — 정보 수정 · 비밀번호 변경 · 탈퇴. 이메일(로그인 ID)은 바꾸지 않는다. */
 
-const errorText = (e: unknown) =>
-  e instanceof ApiError ? (Object.values(e.fields)[0] ?? e.message) : '요청을 처리하지 못했습니다.'
+const errorText = (e: unknown) => (e instanceof ApiError ? (Object.values(e.fields)[0] ?? e.message) : '요청을 처리하지 못했습니다.')
 
 /** 폼 하나 = 섹션 하나. 결과 메시지와 진행 상태를 같이 관리한다 */
 function AccountForm({
@@ -117,7 +116,13 @@ export function MyAccount() {
           return '저장했습니다.'
         }}
       >
-        <Input label="이름" autoComplete="name" maxLength={50} value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+        <Input
+          label="이름"
+          autoComplete="name"
+          maxLength={50}
+          value={profile.name}
+          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+        />
         <Input
           label="휴대폰 번호"
           inputMode="tel"
@@ -127,32 +132,47 @@ export function MyAccount() {
         />
       </AccountForm>
 
-      <AccountForm
-        id="acc-password"
-        title="비밀번호 변경"
-        note="바꾸면 다른 기기의 로그인은 모두 해제됩니다."
-        submitLabel="비밀번호 변경"
-        onSubmit={async () => {
-          await api('/api/users/me/password', { method: 'POST', body: pw })
-          setPw({ currentPassword: '', newPassword: '' })
-          return '비밀번호를 바꿨습니다.'
-        }}
-      >
-        <Input
-          label="현재 비밀번호"
-          type="password"
-          autoComplete="current-password"
-          value={pw.currentPassword}
-          onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })}
-        />
-        <Input
-          label="새 비밀번호 (영문·숫자 포함 8자 이상)"
-          type="password"
-          autoComplete="new-password"
-          value={pw.newPassword}
-          onChange={(e) => setPw({ ...pw, newPassword: e.target.value })}
-        />
-      </AccountForm>
+      {!user.hasPassword ? (
+        <section className="adm-sec" aria-labelledby="acc-password">
+          <h2 className="t-title" id="acc-password">
+            비밀번호
+          </h2>
+          <p className="small" style={{ marginTop: 8 }}>
+            카카오로 가입한 계정이라 비밀번호가 없습니다. 이메일로도 로그인하려면{' '}
+            <Link className="link" to="/forgot">
+              비밀번호 찾기
+            </Link>
+            에서 가입 이메일로 비밀번호를 만들 수 있습니다.
+          </p>
+        </section>
+      ) : (
+        <AccountForm
+          id="acc-password"
+          title="비밀번호 변경"
+          note="바꾸면 다른 기기의 로그인은 모두 해제됩니다."
+          submitLabel="비밀번호 변경"
+          onSubmit={async () => {
+            await api('/api/users/me/password', { method: 'POST', body: pw })
+            setPw({ currentPassword: '', newPassword: '' })
+            return '비밀번호를 바꿨습니다.'
+          }}
+        >
+          <Input
+            label="현재 비밀번호"
+            type="password"
+            autoComplete="current-password"
+            value={pw.currentPassword}
+            onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })}
+          />
+          <Input
+            label="새 비밀번호 (영문·숫자 포함 8자 이상)"
+            type="password"
+            autoComplete="new-password"
+            value={pw.newPassword}
+            onChange={(e) => setPw({ ...pw, newPassword: e.target.value })}
+          />
+        </AccountForm>
+      )}
 
       <AccountForm
         id="acc-withdraw"
@@ -162,13 +182,22 @@ export function MyAccount() {
         danger
         onSubmit={async () => {
           if (!confirmBye) throw new ApiError(400, 'CONFIRM', '안내를 확인하고 체크해주세요.')
-          await api('/api/users/me/withdraw', { method: 'POST', body: { password: byePw } })
+          // 카카오로 가입한 계정은 비밀번호가 없다 — 체크 확인만
+          await api('/api/users/me/withdraw', { method: 'POST', body: user.hasPassword ? { password: byePw } : {} })
           // 보호된 화면을 먼저 떠난다 — 반대 순서면 로그인 화면으로 튕긴다
           navigate('/login', { replace: true, state: { notice: '탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.' } })
           replaceUser(null)
         }}
       >
-        <Input label="비밀번호 확인" type="password" autoComplete="current-password" value={byePw} onChange={(e) => setByePw(e.target.value)} />
+        {user.hasPassword && (
+          <Input
+            label="비밀번호 확인"
+            type="password"
+            autoComplete="current-password"
+            value={byePw}
+            onChange={(e) => setByePw(e.target.value)}
+          />
+        )}
         <label className="agree" style={{ marginTop: 0, marginBottom: 8 }}>
           <input type="checkbox" checked={confirmBye} onChange={(e) => setConfirmBye(e.target.checked)} />
           <span>안내를 확인했으며 탈퇴합니다.</span>

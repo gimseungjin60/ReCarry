@@ -79,7 +79,12 @@ RECARRY 에 특히 중요한 차이는 **① 지역** (Supabase 가 서울 `ap-n
 | `ADMIN_EMAIL` · `ADMIN_PASSWORD` | 처음 한 번 | 실제 관리자 생성용. 만든 뒤에는 `ADMIN_PASSWORD` 를 지운다 |
 | `PORT` | | 호스팅이 준다 |
 | `FORWARD_HEADERS_STRATEGY` | | 기본 `native` (사설 IP 프록시의 X-Forwarded-* 만 신뢰) |
-| `LOGIN_MAX_FAILURES_PER_IP` | | 기본 30. Vercel rewrite 뒤에서는 요청이 Vercel 엣지 IP 몇 개로 모이므로 크게(예: 300) 올린다 — 계정별 제한(5회)은 그대로 |
+| `APP_URL` | ✅ | 사이트 주소 (메일 링크 · 카카오 Redirect URI 를 만든다). 지금 `https://re-carry.vercel.app`, 도메인 구매 후 새 주소 |
+| `MAIL_API_KEY` · `MAIL_FROM` | 권장 | Brevo — 없으면 메일이 나가지 않고, 가입 인증번호 · 이메일 인증 요구도 자동으로 꺼진다 |
+| `REQUIRE_VERIFIED_EMAIL` | | 기본 true (메일을 보낼 수 있을 때만 적용) |
+| `BANK_NAME` · `BANK_ACCOUNT` · `BANK_HOLDER` | 권장 | 무통장 입금 계좌. 비면 임시 계좌 + "입금하지 마세요" 경고 |
+| `LOGIN_MAX_FAILURES_PER_IP` | | 더 이상 쓰지 않는다 (로그인 제한은 이메일 기준). 남아 있으면 지워도 된다 |
+| `KAKAO_CLIENT_ID` · `KAKAO_CLIENT_SECRET` | 선택 secret | 카카오 REST API 키 · Client Secret. 둘 다 있어야 카카오 버튼이 보인다. 콘솔에 Redirect URI `APP_URL + /api/auth/kakao/callback` 등록 |
 
 쓰지 않는 것: `COOKIE_SECURE`(prod 는 항상 Secure — false 면 기동 거부), `RECARRY_ENV_FILE`(로컬 전용), `TEST_DB_*`(CI 전용).
 
@@ -248,3 +253,20 @@ RECARRY 에 특히 중요한 차이는 **① 지역** (Supabase 가 서울 `ap-n
 5. Render → Environment 에서 `ADMIN_PASSWORD` 삭제 → 저장(재배포)
 6. `vercel.json` 에 §4 규칙(`https://<render 주소>/api/$1`) → commit · push → Vercel 배포
 7. §9 체크리스트 → 테스트 관리자 권한 회수(§6-2)
+
+## 12. 서버 깨우기 (keepalive)
+
+Render 무료 서버는 15분 동안 요청이 없으면 잠들어 첫 접속이 30~60초 걸린다 (사이즈 · 가격이 늦게 뜬다).
+`.github/workflows/keepalive.yml` 이 10분마다 `/api/health` 를 부른다. health 는 DB 에 `select 1` 을 보내므로 Supabase 무료의 비활성 일시정지도 막는다.
+
+- GitHub 예약 실행은 몇 분 밀릴 수 있다. 확실히 하려면 UptimeRobot(무료)도 같은 주소로 등록한다 — 장애 알림도 받는다.
+- 도메인을 바꾸면 workflow 의 주소도 바꾼다.
+- 유료(Render Starter)로 올리면 이 workflow 는 지워도 된다.
+
+## 13. 도메인 구매 후 순서
+
+1. Vercel 에 도메인 연결 (HTTPS 자동)
+2. Render: `APP_URL=https://새도메인`, `CORS_ALLOWED_ORIGINS` 에 `https://새도메인`, `https://www.새도메인` 추가
+3. 카카오 개발자 콘솔: Redirect URI `https://새도메인/api/auth/kakao/callback` 추가 → `KAKAO_CLIENT_ID` · `KAKAO_CLIENT_SECRET`
+4. Brevo: 새 도메인 발신 인증(SPF · DKIM · DMARC) → `MAIL_FROM` 을 새 도메인 주소로
+5. keepalive workflow 주소 변경, OG 태그 `og:url` 추가

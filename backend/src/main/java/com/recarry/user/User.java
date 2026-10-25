@@ -76,6 +76,14 @@ public class User {
 	@Column(name = "totp_last_step")
 	private Long totpLastStep;
 
+	/** 연결된 카카오 회원번호 (카카오 로그인) */
+	@Column(name = "kakao_id")
+	private Long kakaoId;
+
+	/** 비밀번호를 직접 정했는가 — 카카오로 가입하면 false (비밀번호 찾기로 만들 수 있다) */
+	@Column(name = "password_set", nullable = false)
+	private boolean passwordSet = true;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -131,6 +139,7 @@ public class User {
 	/** 비밀번호를 바꾸면 다른 기기의 로그인은 모두 끊긴다 */
 	public void changePassword(String passwordHash, Instant now) {
 		this.passwordHash = passwordHash;
+		this.passwordSet = true;
 		this.sessionsValidAfter = now;
 	}
 
@@ -143,6 +152,7 @@ public class User {
 		this.name = "탈퇴회원";
 		this.phone = "";
 		this.passwordHash = unusablePasswordHash;
+		this.kakaoId = null;   // 같은 카카오 계정으로 다시 가입할 수 있게
 		this.deletedAt = now;
 		this.sessionsValidAfter = now;
 	}
@@ -177,6 +187,30 @@ public class User {
 		this.totpSecret = null;
 		this.totpEnabled = false;
 		this.totpLastStep = null;
+	}
+
+	public Long getKakaoId() { return kakaoId; }
+	public boolean isPasswordSet() { return passwordSet; }
+
+	/** 카카오로 가입한 계정 — 비밀번호는 아무도 모르는 값이다 */
+	public void startWithKakao(long kakaoId) {
+		this.kakaoId = kakaoId;
+		this.passwordSet = false;
+	}
+
+	/**
+	 * 같은 이메일의 기존 계정에 카카오를 연결한다 (카카오가 확인한 이메일).
+	 * 이메일 인증을 안 한 계정이면 남이 이 이메일로 먼저 가입해 둔 계정일 수 있으므로,
+	 * 비밀번호를 아무도 모르는 값으로 바꾸고 기존 로그인을 모두 끊는다.
+	 */
+	public void linkKakao(long kakaoId, String unusablePasswordHash, Instant now) {
+		this.kakaoId = kakaoId;
+		if (emailVerifiedAt == null) {
+			this.emailVerifiedAt = now;
+			this.passwordHash = unusablePasswordHash;
+			this.passwordSet = false;
+			this.sessionsValidAfter = now;
+		}
 	}
 
 	public void promoteToAdmin() {

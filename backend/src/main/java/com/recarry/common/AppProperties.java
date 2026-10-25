@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /** application.yml 의 recarry.* — 비밀 값은 모두 환경변수에서 들어온다. */
 @ConfigurationProperties("recarry")
 public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginLimit, Admin admin, Booking booking,
-		Legal legal, Mail mail, Payment payment, String appUrl) {
+		Legal legal, Mail mail, Payment payment, Kakao kakao, String appUrl) {
 
 	public record Jwt(String secret, long ttlMinutes) {}
 
@@ -63,6 +63,13 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginL
 		public String bank() { return sample() ? "OO은행" : bankName; }
 		public String account() { return sample() ? "000-000000-00-000" : bankAccount; }
 		public String holder() { return sample() ? "RECARRY (임시 계좌)" : bankHolder; }
+	}
+
+	/** 카카오 로그인 — REST API 키와 Client Secret 이 모두 있어야 켜진다. Redirect URI = appUrl + /api/auth/kakao/callback */
+	public record Kakao(String clientId, String clientSecret, String authBase, String apiBase) {
+		public boolean configured() {
+			return clientId != null && !clientId.isBlank() && clientSecret != null && !clientSecret.isBlank();
+		}
 	}
 
 	/** 가입 시 동의받는 문서 버전 — 문서가 바뀌면 함께 올린다 */

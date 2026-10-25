@@ -31,7 +31,28 @@ public final class AuthDtos {
 		@NotBlank(message = "휴대폰 번호를 입력해주세요.") @Pattern(regexp = PHONE, message = "휴대폰 번호 형식이 아닙니다.") String phone,
 		// 필수 동의 — 보내지 않거나 false 면 거절한다
 		@NotNull(message = "이용약관에 동의해주세요.") @AssertTrue(message = "이용약관에 동의해주세요.") Boolean agreeTerms,
-		@NotNull(message = "개인정보 수집·이용에 동의해주세요.") @AssertTrue(message = "개인정보 수집·이용에 동의해주세요.") Boolean agreePrivacy) {}
+		@NotNull(message = "개인정보 수집·이용에 동의해주세요.") @AssertTrue(message = "개인정보 수집·이용에 동의해주세요.") Boolean agreePrivacy,
+		// 이메일 인증번호 (SignupCodes) — 인증을 요구하는 환경에서만 필요
+		@Size(max = 200) String emailChallenge,
+		@Size(max = 10) String emailCode) {}
+
+	/** 카카오로 가입: 비밀번호 없이, 카카오에서 받은 정보를 고쳐 쓸 수 있다 */
+	public record KakaoSignupRequest(
+		@NotBlank(message = "이메일을 입력해주세요.") @Email(message = "이메일 형식이 아닙니다.") @Size(max = 254) String email,
+		@NotBlank(message = "이름을 입력해주세요.") @Size(max = 50) String name,
+		@NotBlank(message = "휴대폰 번호를 입력해주세요.") @Pattern(regexp = PHONE, message = "휴대폰 번호 형식이 아닙니다.") String phone,
+		@NotNull(message = "이용약관에 동의해주세요.") @AssertTrue(message = "이용약관에 동의해주세요.") Boolean agreeTerms,
+		@NotNull(message = "개인정보 수집·이용에 동의해주세요.") @AssertTrue(message = "개인정보 수집·이용에 동의해주세요.") Boolean agreePrivacy,
+		@Size(max = 200) String emailChallenge,
+		@Size(max = 10) String emailCode) {}
+
+	public record EmailCodeRequest(
+		@NotBlank(message = "이메일을 입력해주세요.") @Email(message = "이메일 형식이 아닙니다.") @Size(max = 254) String email) {}
+
+	public record EmailCodeResponse(String challenge) {}
+
+	/** 화면이 보여줄 로그인 · 가입 방법 */
+	public record AuthOptions(boolean kakao, boolean signupEmailCode) {}
 
 	/** otp: 2단계 인증을 켠 관리자만 — 없으면 OTP_REQUIRED 로 다시 요청하게 한다 */
 	public record LoginRequest(

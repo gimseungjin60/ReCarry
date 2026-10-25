@@ -18,8 +18,7 @@
 .cal-g button.s span,.cal-g button.e span{background:var(--ink);color:var(--paper)}
 .cal-g button.today span{text-decoration:underline;text-underline-offset:3px}
 
-/* 태블릿 세로부터는 요약 패널 옆에 두 달이 들어가지 않는다 */
+/* 태블릿 세로부터는 두 달을 위아래로 — 월말에도 도착일을 바로 고를 수 있게 */
 @container app (max-width:860px){
-  .cal-months{--m:1 !important}
-  .cal-months .cal-m:nth-child(2){display:none}
+  .cal-months{--m:1 !important;gap:28px}
 }

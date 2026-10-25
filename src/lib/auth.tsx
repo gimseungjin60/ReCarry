@@ -6,8 +6,17 @@ import type { AuthResponse, User } from '@/data/types'
 /* 로그인 상태. 세션은 backend 의 httpOnly 쿠키에만 있고, 여기서는 사용자 정보만 들고 있다.
    처음 열 때 /api/auth/session 으로 로그인 여부를 확인한다 (비로그인은 401 이 아니라 user=null). */
 
+/** 서버 설정에 따라 켜지는 가입 · 로그인 수단 */
+export interface AuthOptions {
+  /** 카카오 로그인 (KAKAO_* 키가 있을 때) */
+  kakao: boolean
+  /** 가입 시 이메일 인증번호 (메일을 보낼 수 있을 때) */
+  signupEmailCode: boolean
+}
+
 interface AuthState {
   user: User | null
+  options: AuthOptions
   /** 세션을 확인하는 중 */
   loading: boolean
   /** otp: 2단계 인증을 켠 관리자만 (서버가 OTP_REQUIRED 로 알려준다) */
@@ -26,6 +35,9 @@ export interface SignupInput {
   /** 필수 동의 — backend 가 다시 검증하고 동의 버전·시각을 기록한다 */
   agreeTerms: boolean
   agreePrivacy: boolean
+  /** 이메일 인증번호 (options.signupEmailCode 일 때) */
+  emailChallenge?: string
+  emailCode?: string
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -33,6 +45,7 @@ const AuthContext = createContext<AuthState | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [options, setOptions] = useState<AuthOptions>({ kakao: false, signupEmailCode: false })
 
   useEffect(() => {
     // 보호 API 가 401 을 주면(세션 만료 등) 로그아웃 상태로 바꾼다
@@ -41,6 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((s) => setUser(s.user))
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
+    api<AuthOptions>('/api/auth/options')
+      .then(setOptions)
+      .catch(() => {})
   }, [])
 
   const logout = useCallback(async () => {
@@ -52,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       user,
+      options,
       loading,
       logout,
       replaceUser: setUser,
@@ -66,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return r.user
         }),
     }),
-    [user, loading, logout],
+    [user, options, loading, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
