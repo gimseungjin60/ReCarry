@@ -8,12 +8,14 @@ import { fmt, nights, priceFor, stayLabel, won } from '@/lib/format'
 interface Props {
   carriers: Carrier[]
   availability: Availability[] | null
+  /** 그 기간 재고를 받아 오는 중 */
+  loading: boolean
   size: CarrierSize
   range: DateRange
   onPick: (size: CarrierSize) => void
 }
 
-export default function CarrierStep({ carriers, availability, size, range, onPick }: Props) {
+export default function CarrierStep({ carriers, availability, loading, size, range, onPick }: Props) {
   const { start, end } = range
   const n = nights(start, end)
 
@@ -45,7 +47,9 @@ export default function CarrierStep({ carriers, availability, size, range, onPic
             </p>
             <p className="small" style={{ color: 'var(--ink)', marginTop: 6 }}>
               {won(priceFor(c, n))}{' '}
-              <span className="muted">· {soldOut ? '선택한 기간에 예약 마감' : `${free}대 예약 가능`}</span>
+              <span className="muted">
+                · {loading ? '예약 가능 여부 확인 중' : soldOut ? '선택한 기간에 예약 마감' : `${free}대 예약 가능`}
+              </span>
             </p>
           </div>
           <span className="radio" aria-hidden="true" />

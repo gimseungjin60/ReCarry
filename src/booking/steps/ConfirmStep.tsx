@@ -58,7 +58,7 @@ export default function ConfirmStep({ carrier, start, end, form, agree, onAgree,
         </div>
         <div className="tot">
           <dt>결제 예정 금액</dt>
-          <dd>{won(rental + (deposit ?? 0))}</dd>
+          <dd>{deposit === null ? `${won(rental)} + 보증금` : won(rental + deposit)}</dd>
         </div>
       </dl>
       <div className="note" style={{ marginTop: 24 }}>

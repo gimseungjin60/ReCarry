@@ -197,6 +197,7 @@ export function Signup() {
   const [fields, setFields] = useState<Record<string, string>>({})
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [sending, setSending] = useState(false)
   // 이메일 인증번호 (쇼핑몰 가입의 "인증번호 받기")
   const [challenge, setChallenge] = useState('')
   const [code, setCode] = useState('')
@@ -231,12 +232,15 @@ export function Signup() {
   const sendCode = async () => {
     setFields({})
     setCodeMsg('')
+    setSending(true)
     try {
       const r = await api<{ challenge: string }>('/api/auth/signup/email-code', { method: 'POST', body: { email: form.email } })
       setChallenge(r.challenge)
       setCodeMsg(`${form.email} 로 인증번호를 보냈습니다. 10분 안에 입력해주세요.`)
     } catch (x) {
       if (x instanceof ApiError) setFields({ email: x.fields.email ?? x.message })
+    } finally {
+      setSending(false)
     }
   }
 
@@ -290,8 +294,8 @@ export function Signup() {
               aria-invalid={!!fields.email}
             />
             {needCode && (
-              <button type="button" className="btn btn-secondary btn-sm" onClick={sendCode} disabled={!form.email.trim()}>
-                {challenge ? '다시 받기' : '인증번호 받기'}
+              <button type="button" className="btn btn-secondary btn-sm" onClick={sendCode} disabled={sending || !form.email.trim()}>
+                {sending ? '보내는 중…' : challenge ? '다시 받기' : '인증번호 받기'}
               </button>
             )}
           </div>

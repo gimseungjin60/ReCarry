@@ -23,7 +23,8 @@ import { useTitle } from '@/lib/useTitle'
 /* PRD §4 Booking — 쇼핑몰 주문서처럼 로그인 없이 날짜 · 캐리어 · 배송 정보까지 고르고,
    마지막 "예약 요청"에서만 로그인(카카오 · 이메일)한다. 고른 내용은 sessionStorage 에 남아
    로그인 · 가입 · 카카오를 다녀와도 그대로 이어진다.
-   Product 에서 사이즈·날짜·보던 Carrier ID 를 받아 오며, 날짜가 있으면 Step 02 부터 시작한다.
+   홈 첫 화면 · Product 에서 사이즈·날짜(·보던 Carrier ID)를 받아 오면 사이즈는 이미 고른 것이므로
+   Step 02(캐리어 선택)를 건너뛰고 Step 03 부터 시작한다. 바꾸고 싶으면 단계 표시에서 Step 02 를 누른다.
    확정하면 POST /api/bookings — 금액·재고·날짜는 서버가 다시 검증한다. */
 
 const DRAFT_KEY = 'recarry.booking'
@@ -35,6 +36,9 @@ interface Draft {
   end: string
   form: DeliveryForm
   step: BookingStep
+  /** 사이즈를 이미 골라 Step 02 를 건너뛰는 중 */
+  skipCarrier?: boolean
+  agree?: boolean
 }
 
 /** 이어서 할 예약 (같은 탭 안에서만). 깨졌거나 지난 날짜면 버린다 */
@@ -63,9 +67,11 @@ export default function Booking() {
   useTitle('예약')
   const navigate = useNavigate()
   const location = useLocation()
-  // 상품 · 홈에서 날짜를 들고 오면 그것을, 아니면 이어서 할 예약을 쓴다
-  const [draft] = useState(() => (asDate((location.state as FromProduct | null)?.start) ? null : readDraft()))
-  const from = (location.state ??
+  // 상품 · 홈에서 들어왔으면(state) 새 예약 — 이어서 할 예약(draft)과 섞지 않는다.
+  // state 없이 들어오면(로그인 · 가입 · 카카오에서 돌아옴, 메뉴) 이어서 할 예약을 쓴다
+  const [entry] = useState(() => location.state as FromProduct | null)
+  const [draft] = useState(() => (entry ? null : readDraft()))
+  const from = (entry ??
     (draft ? { size: draft.size, carrierCode: draft.carrierCode, start: parseYmd(draft.start), end: parseYmd(draft.end) } : {})) as FromProduct
   const { user, options } = useAuth()
   const catalog = useCatalog()
@@ -76,7 +82,9 @@ export default function Booking() {
     const end = asDate(from.end)
     return start && end && end > start ? { start, end } : { start: null, end: null }
   })
-  const firstStep: BookingStep = draft?.step ?? (range.start && range.end ? 2 : 1)
+  // 사이즈를 들고 왔으면 Step 02 를 건너뛴다 (직접 Step 02 를 열면 그때부터는 건너뛰지 않는다)
+  const [skipCarrier, setSkipCarrier] = useState(() => (draft ? !!draft.skipCarrier : isCarrierSize(from.size)))
+  const firstStep: BookingStep = draft?.step ?? (range.start && range.end ? (skipCarrier ? 3 : 2) : 1)
   const [step, setStep] = useState<BookingStep>(firstStep)
   const [maxStep, setMaxStep] = useState<BookingStep>(firstStep)
   // 받는 분·연락처는 내 정보로 미리 채운다 (바꿀 수 있다)
@@ -85,25 +93,46 @@ export default function Booking() {
   const [gate, setGate] = useState(false)
   const [addrHint, setAddrHint] = useState('')
   const [availability, setAvailability] = useState<Availability[] | null>(null)
+  const [availFailed, setAvailFailed] = useState(false)
+  const [availTry, setAvailTry] = useState(0)
   const [submitting, setSubmitting] = useState(false)
-  const [agree, setAgree] = useState(false)
+  // 로그인하고 돌아와도 동의 체크가 풀리지 않게 draft 에 남긴다
+  const [agree, setAgree] = useState(() => draft?.agree ?? false)
   const [err, setErr] = useState('')
   const errRef = useRef<HTMLParagraphElement>(null)
 
   const carrier = catalog.bySize(size)
   const { start, end } = range
   const n = nights(start, end)
+  // 고른 사이즈의 그 기간 재고 · 보증금 (서버 계산). 못 받았으면 null
+  const mine = availability?.find((x) => x.size === size) ?? null
+  const soldOut = mine?.available === 0
+  const deposit = mine?.deposit ?? null
+
+  // 들고 온 state 는 한 번만 쓴다 — 새로고침 · 뒤로가기로 다시 들어오면 새 예약이 아니라 draft 로 이어진다
+  useEffect(() => {
+    if (location.state) navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
 
   // 고른 내용을 남겨 둔다 — 로그인 · 가입 · 카카오를 다녀와도 이어서
   useEffect(() => {
     if (!start || !end) return
-    const d: Draft = { size, carrierCode: from.size === size ? from.carrierCode : undefined, start: ymd(start), end: ymd(end), form, step }
+    const d: Draft = {
+      size,
+      carrierCode: from.size === size ? from.carrierCode : undefined,
+      start: ymd(start),
+      end: ymd(end),
+      form,
+      step,
+      skipCarrier,
+      agree,
+    }
     try {
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d))
     } catch {
       /* 저장소를 못 쓰면 이어하기만 안 된다 */
     }
-  }, [size, start, end, form, step, from.size, from.carrierCode])
+  }, [size, start, end, form, step, skipCarrier, agree, from.size, from.carrierCode])
 
   // 중간에 로그인했으면 비어 있는 받는 분 · 연락처를 내 정보로
   useEffect(() => {
@@ -131,32 +160,45 @@ export default function Booking() {
   // 날짜가 정해지면 사이즈별 "그 기간에" 예약 가능한 대수를 받아 온다
   useEffect(() => {
     setAvailability(null)
+    setAvailFailed(false)
     if (!start || !end) return
     let alive = true
     api<Availability[]>(`/api/carriers/availability?start=${ymd(start)}&end=${ymd(end)}`)
       .then((a) => alive && setAvailability(a))
-      .catch(() => alive && setAvailability(null))
+      .catch(() => alive && setAvailFailed(true))
     return () => {
       alive = false
     }
-  }, [start, end])
+  }, [start, end, availTry])
 
   const goto = (s: BookingStep) => {
+    if (s === 2) setSkipCarrier(false)
     setStep(s)
     setMaxStep((m) => (s > m ? s : m))
     setErr('')
     window.scrollTo(0, 0)
   }
 
+  // Step 02 를 건너뛰었는데 고른 사이즈가 그 기간에 마감이면 캐리어 선택으로 돌려보낸다
+  useEffect(() => {
+    if (!soldOut || step <= 2) return
+    setStep(2)
+    setMaxStep(2)
+    setSkipCarrier(false)
+    window.scrollTo(0, 0)
+    showErr('선택한 기간에 이 사이즈는 예약이 마감되었습니다. 다른 사이즈를 선택해주세요.')
+  }, [soldOut, step]) // eslint-disable-line react-hooks/exhaustive-deps -- showErr 는 매 렌더 새로 만들어지는 함수
+
   // prototype validate(): 현재 단계에서 빠진 값이 있으면 메시지를 돌려준다
   const validate = () => {
-    if (step === 1 && !(start && end)) return '출발일과 도착일을 모두 선택해주세요.'
-    if (step === 2 && availability?.find((x) => x.size === size)?.available === 0)
+    if (!(start && end)) return step === 1 ? '출발일과 도착일을 모두 선택해주세요.' : '여행 날짜를 다시 선택해주세요. (Step 01)'
+    if (step === 2 && soldOut)
       return '선택한 기간에 예약할 수 있는 캐리어가 없습니다. 다른 사이즈를 선택해주세요.'
     if (step === 3 && (!form.name.trim() || !form.phone.trim() || !form.addr.trim()))
       return '받는 분, 휴대폰 번호, 주소를 입력해주세요.'
     if (step === 3 && !isPhone(form.phone)) return '휴대폰 번호 형식을 확인해주세요. (예: 010-1234-5678)'
     if (step === 4 && !agree) return '예약 내용과 대여 정책을 확인해주세요.'
+    if (step === 4 && user?.needsEmailVerification) return '이메일 인증을 마친 뒤 예약할 수 있습니다. 위 안내에서 인증 메일을 다시 받아주세요.'
     return ''
   }
 
@@ -169,7 +211,8 @@ export default function Booking() {
   const next = async () => {
     const e = validate()
     if (e) return showErr(e)
-    if (step < 4) return goto((step + 1) as BookingStep)
+    // 사이즈를 이미 골랐으면 날짜 다음은 바로 배송 정보 (마감이면 캐리어 선택으로)
+    if (step < 4) return goto((step === 1 && skipCarrier && !soldOut ? 3 : step + 1) as BookingStep)
     if (!carrier || !start || !end || submitting) return
     // 주문서 마지막 단계에서만 로그인 — 고른 내용은 draft 로 남아 있다
     if (!user) return setGate(true)
@@ -198,8 +241,8 @@ export default function Booking() {
       navigate('/booking/complete', { replace: true, state: booking })
     } catch (x) {
       const ae = x instanceof ApiError ? x : null
-      // 세션이 끝났으면 다시 로그인한 뒤 같은 날짜·사이즈로 돌아온다
-      if (ae?.status === 401) return navigate('/login', { state: { from: { pathname: '/booking', state: location.state } } })
+      // 세션이 끝났으면 다시 로그인한 뒤 이어서 — 고른 내용은 draft 에 있다 (state 를 넘기면 새 예약으로 읽힌다)
+      if (ae?.status === 401) return navigate('/login', { state: { from: { pathname: '/booking' } } })
       // 요금이 바뀌었으면 카탈로그를 다시 받아 화면 금액을 서버 금액에 맞춘다 (다시 누르면 새 금액으로 요청)
       if (ae?.code === 'PRICE_MISMATCH') {
         invalidateCatalog()
@@ -212,8 +255,27 @@ export default function Booking() {
     }
   }
 
-  const prev = () => goto((step - 1) as BookingStep)
-  const nextLabel = submitting ? '예약 요청 중…' : step === 4 && !user ? '로그인하고 예약 요청' : NEXT_LABEL[step - 1]
+  const prev = () => goto((step === 3 && skipCarrier ? 1 : step - 1) as BookingStep)
+  // Step 01 달력 아래: 고른 사이즈가 그 기간에 남아 있는지
+  const dateNote =
+    skipCarrier && start && end
+      ? !availability
+        ? availFailed
+          ? ''
+          : '예약 가능 여부를 확인하고 있습니다…'
+        : soldOut
+          ? `${carrier?.name ?? '이 사이즈'}는 이 기간에 마감입니다. 다음 단계에서 다른 사이즈를 고를 수 있습니다.`
+          : mine
+            ? `${carrier?.name ?? ''} · 이 기간 ${mine.available}대 예약 가능`
+            : ''
+      : ''
+  const nextLabel = submitting
+    ? '예약 요청 중…'
+    : step === 4 && !user
+      ? '로그인하고 예약 요청'
+      : step === 1 && skipCarrier && !soldOut
+        ? NEXT_LABEL[1] // 캐리어 선택을 건너뛰므로 다음은 배송 정보
+        : NEXT_LABEL[step - 1]
 
   if (!carrier) {
     return (
@@ -251,17 +313,30 @@ export default function Booking() {
                 range={range}
                 onChange={(r) => {
                   setRange(r)
+                  setAgree(false) // 날짜가 바뀌면 예약 내용 확인을 다시 받는다
+                  setErr('')
+                }}
+                note={dateNote}
+              />
+            )}
+            {step === 2 && catalog.list && (
+              <CarrierStep
+                carriers={catalog.list}
+                size={size}
+                range={range}
+                availability={availability}
+                loading={!!(start && end) && !availability && !availFailed}
+                onPick={(s) => {
+                  if (s !== size) setAgree(false)
+                  setSize(s)
                   setErr('')
                 }}
               />
             )}
-            {step === 2 && catalog.list && (
-              <CarrierStep carriers={catalog.list} size={size} range={range} availability={availability} onPick={setSize} />
-            )}
             {step === 3 && <DeliveryStep form={form} onChange={setForm} range={range} hint={addrHint} />}
             {step === 4 && start && end && (
               <ConfirmStep
-                deposit={availability?.find((x) => x.size === size)?.deposit ?? null}
+                deposit={deposit}
                 carrier={carrier}
                 start={start}
                 end={end}
@@ -272,6 +347,14 @@ export default function Booking() {
                   setErr('')
                 }}
               />
+            )}
+            {availFailed && (
+              <p className="note" role="alert" style={{ marginTop: 24 }}>
+                <span>예약 가능 여부와 보증금을 불러오지 못했습니다.</span>
+                <button className="link" onClick={() => setAvailTry((t) => t + 1)}>
+                  다시 불러오기
+                </button>
+              </p>
             )}
             <p className="err" ref={errRef} role="alert">
               {err}
@@ -292,14 +375,14 @@ export default function Booking() {
             </div>
           </div>
 
-          <BookingSummary carrier={carrier} start={start} end={end} />
+          <BookingSummary carrier={carrier} start={start} end={end} deposit={deposit} />
         </div>
       </div>
 
       <div className="bk-bar">
         <div className="tt">
-          <b>{n ? won(priceFor(carrier, n)) : won(carrier.price) + '~'}</b>
-          대여 요금 · {carrier.name}
+          <b>{n ? won(priceFor(carrier, n) + (deposit ?? 0)) : won(carrier.price) + '~'}</b>
+          {n && deposit !== null ? '결제 예정 (보증금 포함)' : '대여 요금'} · {carrier.name}
           {n > 0 && ` · ${stayLabel(n)}`}
         </div>
         {step > 1 && (

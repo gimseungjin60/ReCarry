@@ -1,5 +1,5 @@
 import { CarrierMedia } from './CarrierBag'
-import { fmt, nights, priceFor, stayLabel, won } from '@/lib/format'
+import { addDays, fmt, nights, priceFor, stayLabel, won } from '@/lib/format'
 import type { Carrier } from '@/data/types'
 import './BookingSummary.css'
 
@@ -9,10 +9,14 @@ interface Props {
   carrier: Carrier
   start: Date | null
   end: Date | null
+  /** 서버가 계산한 보증금 (그 기간 availability). 아직 모르면 null */
+  deposit: number | null
 }
 
-export default function BookingSummary({ carrier, start, end }: Props) {
+export default function BookingSummary({ carrier, start, end, deposit }: Props) {
   const n = nights(start, end)
+  // 날짜와 보증금을 알면 상품 화면 · 예약 확인과 같은 "결제 예정 금액"을 합계로 보여준다
+  const dep = n > 0 ? deposit : null
 
   return (
     <aside className="bk-side">
@@ -58,17 +62,23 @@ export default function BookingSummary({ carrier, start, end }: Props) {
           <dd>{won(Math.max(0, n - 2) * carrier.extra)}</dd>
         </div>
         <div>
-          <dt>배송 · 회수</dt>
-          <dd>준비 중</dd>
+          <dt>도착 · 회수</dt>
+          <dd>{start && end ? `${fmt(addDays(start, -1))} · ${fmt(end)}` : '—'}</dd>
         </div>
-        <div className="tot">
+        <div className={dep === null ? 'tot' : undefined}>
           <dt>대여 요금</dt>
           <dd>{n ? won(priceFor(carrier, n)) : won(carrier.price) + '~'}</dd>
         </div>
         <div>
-          <dt>보증금</dt>
-          <dd>대여 요금의 30% (반납 후 환불)</dd>
+          <dt>보증금 (반납 후 환불)</dt>
+          <dd>{dep === null ? '대여 요금의 30%' : won(dep)}</dd>
         </div>
+        {dep !== null && (
+          <div className="tot">
+            <dt>결제 예정 금액</dt>
+            <dd>{won(priceFor(carrier, n) + dep)}</dd>
+          </div>
+        )}
       </dl>
     </aside>
   )

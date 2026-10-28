@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import Button from '@/components/Button'
 import SectionHeader from '@/components/SectionHeader'
@@ -20,19 +20,22 @@ import { useTitle } from '@/lib/useTitle'
 
 /* PRD §4 Product Detail — prototype productHTML() 구조 그대로. */
 
-/** 패널 안 날짜 선택. 고른 날짜는 예약하기로 Booking 에 넘어간다. */
+/** 패널 안 날짜 선택. 고른 날짜는 예약하기로 Booking 에 넘어간다. 열림 상태는 예약하기 버튼도 쓴다 */
 function DateBox({
   carrier,
   range,
   setRange,
   avail,
+  open,
+  setOpen,
 }: {
   carrier: Carrier
   range: DateRange
   setRange: (r: DateRange) => void
   avail: Availability | null
+  open: boolean
+  setOpen: (v: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
   const { start, end } = range
   const n = nights(start, end)
 
@@ -95,6 +98,8 @@ export default function Product() {
   const navigate = useNavigate()
   // prototype 처럼 사이즈를 옮겨 다녀도 고른 날짜는 유지한다
   const [range, setRange] = useState<DateRange>({ start: null, end: null })
+  const [dateOpen, setDateOpen] = useState(false)
+  const dateRef = useRef<HTMLDivElement>(null)
   const catalog = useCatalog()
   const p = isCarrierSize(size) ? catalog.bySize(size) : undefined
   useReveal(p)
@@ -133,10 +138,27 @@ export default function Product() {
       </div>
     )
   }
-  // 보고 있던 캐리어(Carrier ID)를 우선 배정해 달라고 함께 넘긴다
-  const book = () => navigate('/booking', { state: { size: p.key, carrierCode: p.id, ...range } })
+  // 보고 있던 캐리어(Carrier ID)를 우선 배정해 달라고 함께 넘긴다.
+  // 날짜를 아직 안 골랐으면 예약 화면으로 넘기지 않고 이 화면의 달력을 연다 (홈 첫 화면과 같은 동작)
+  const book = () => {
+    if (!start || !end) {
+      setDateOpen(true)
+      dateRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      return
+    }
+    navigate('/booking', { state: { size: p.key, carrierCode: p.id, start, end } })
+  }
   const mine = avail?.find((a) => a.size === p.key) ?? null
+  const n = nights(start, end)
   const soldOut = mine?.available === 0
+  // 날짜를 고르면 "그 기간" 재고로, 아니면 운영 중인 대수로 알려준다
+  const status = mine
+    ? soldOut
+      ? '이 기간에는 예약 가능한 캐리어가 없습니다'
+      : `이 기간 ${mine.available}대 예약 가능`
+    : p.available > 0
+      ? '이용 가능'
+      : '지금은 예약 가능한 캐리어가 없습니다'
 
   const spec = [
     { k: '사이즈', v: p.inch },
@@ -164,7 +186,7 @@ export default function Product() {
 
           <aside className="pd-panel">
             <p className="mono muted">
-              {p.id} · {p.available > 0 ? '이용 가능' : '지금은 예약 가능한 캐리어가 없습니다'}
+              {p.id} · {status}
             </p>
             <h1 className="d-m">{p.name}</h1>
             <div className="pd-meta">
@@ -192,7 +214,9 @@ export default function Product() {
               </span>
             </div>
 
-            <DateBox carrier={p} range={range} setRange={setRange} avail={mine} />
+            <div ref={dateRef}>
+              <DateBox carrier={p} range={range} setRange={setRange} avail={mine} open={dateOpen} setOpen={setDateOpen} />
+            </div>
             <Button block arrow onClick={book} style={{ marginTop: 12 }} disabled={soldOut}>
               {soldOut ? '이 기간에는 예약할 수 없습니다' : '예약하기'}
             </Button>
@@ -308,8 +332,8 @@ export default function Product() {
               의<br />
               다음 여행을 시작하세요.
             </h2>
-            <Button arrow onClick={book}>
-              예약하기
+            <Button arrow onClick={book} disabled={soldOut}>
+              {soldOut ? '이 기간에는 예약할 수 없습니다' : '예약하기'}
             </Button>
           </div>
         </section>
@@ -317,11 +341,11 @@ export default function Product() {
 
       <div className="pd-bar">
         <div>
-          <div className="p">{won(p.price)}</div>
-          <div className="small">2박 3일 기준</div>
+          <div className="p">{n > 0 ? won(priceFor(p, n) + (mine?.deposit ?? 0)) : won(p.price)}</div>
+          <div className="small">{n > 0 ? (mine ? `결제 예정 · ${stayLabel(n)}` : `대여 요금 · ${stayLabel(n)}`) : '2박 3일 기준'}</div>
         </div>
         <Button onClick={book} disabled={soldOut}>
-          예약하기
+          {soldOut ? '예약 마감' : '예약하기'}
         </Button>
       </div>
     </>
