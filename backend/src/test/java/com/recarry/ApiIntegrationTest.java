@@ -64,6 +64,8 @@ class ApiIntegrationTest {
 		// 메일은 실제로 보내지 않고 CapturingMailer 가 받는다
 		r.add("recarry.mail.log-only", () -> "true");
 		r.add("recarry.mail.require-verified-email", () -> "true");
+		// 테스트는 15분 안에 수십 번 가입한다 — 전체 인증번호 한도에 걸리지 않게
+		r.add("recarry.login-limit.signup-codes-per-window", () -> "10000");
 		// 카카오 로그인은 가짜 카카오 서버(FAKE_KAKAO)로
 		r.add("recarry.kakao.client-id", () -> "test-client");
 		r.add("recarry.kakao.client-secret", () -> "test-secret");

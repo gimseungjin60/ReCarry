@@ -47,6 +47,7 @@ recarry:
   login-limit:                     # 로그인 실패 제한 (인스턴스 메모리 기준)
     max-failures-per-email: 5
     window-minutes: 15
+    signup-codes-per-window: 30    # 가입 인증번호 메일 — 서비스 전체 한도 (메일 발송 한도 소진 방지)
   admin:                           # 둘 다 있으면 기동 시 관리자 계정을 만들거나 승격한다
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}

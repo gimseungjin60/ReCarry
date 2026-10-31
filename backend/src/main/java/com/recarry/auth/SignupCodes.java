@@ -52,6 +52,9 @@ public class SignupCodes {
 		String email = AuthService.normalizeEmail(rawEmail);
 		AuthService.checkAvailable(email, users, "이미 가입된 이메일입니다.");
 		limiter.consume("signup-code:" + email, 3);
+		// 서비스 전체 한도 — 주소를 바꿔 가며 보내 메일 발송 한도를 소진시키지 못하게.
+		// ponytail: 남용 시 가입 인증번호만 잠시 막힌다. 도메인을 붙이면 CAPTCHA(Turnstile)를 앞에 둔다
+		limiter.consume("signup-code-all", props.loginLimit().signupCodesPerWindow());
 		String code = String.format("%06d", RANDOM.nextInt(1_000_000));
 		long exp = clock.instant().plus(TTL).getEpochSecond();
 		mailer.sendAfterCommit(email, "[RECARRY] 회원가입 인증번호",

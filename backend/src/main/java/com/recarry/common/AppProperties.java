@@ -18,7 +18,7 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, LoginLimit loginL
 	public record Cookie(String name, boolean secure, String sameSite) {}
 
 	/** 로그인 실패 제한 — 창(window) 안에서 이메일별 실패 횟수 (IP 는 쓰지 않는다 — LoginRateLimiter) */
-	public record LoginLimit(int maxFailuresPerEmail, int windowMinutes) {}
+	public record LoginLimit(int maxFailuresPerEmail, int windowMinutes, int signupCodesPerWindow) {}
 
 	/** 둘 다 비어 있지 않을 때만 첫 관리자를 만든다. */
 	public record Admin(String email, String password) {
