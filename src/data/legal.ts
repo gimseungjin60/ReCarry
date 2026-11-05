@@ -35,7 +35,7 @@ export const TBD = '[확정 필요]'
 export const BUSINESS_INFO = [
   ['상호', `RECARRY ${TBD}`],
   ['대표자', TBD],
-  ['사업자등록번호', TBD],
+  ['사업자등록번호', '287-19-02422'],
   ['통신판매업 신고번호', TBD],
   ['주소', TBD],
   ['고객센터', TBD],
