@@ -29,7 +29,7 @@ export default function BookingTicket({ booking: b, full }: { booking: Booking; 
   if (b.deposit > 0) rows.push(['보증금 (반납 후 환불)', won(b.deposit)], ['합계 (대여 요금 + 보증금)', won(b.amountDue)])
   if (b.paidAt && b.paidAmount != null)
     rows.push(['입금 확인', [won(b.paidAmount), dateTime(b.paidAt), b.payerName].filter(Boolean).join(' · ')])
-  if (b.refundAmount != null)
+  if (b.refundAmount)
     rows.push(['환불', `${won(b.refundAmount)} · ${b.refundedAt ? `${dateTime(b.refundedAt)} 송금 완료` : '송금 예정 (영업일 3일 안)'}`])
   if (b.depositSettledAt && b.depositDeduction != null)
     rows.push([

@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     // 쿠키는 JS 가 지울 수 없으므로 backend 가 지운다. 실패해도 화면은 로그아웃 상태로
     await api('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    sessionStorage.removeItem('recarry.booking') // 예약 작성 중 개인정보 — 공용 PC 대비 (Booking.tsx DRAFT_KEY)
     setUser(null)
   }, [])
 

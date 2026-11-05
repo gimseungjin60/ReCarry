@@ -394,7 +394,7 @@ function BookingMoney({ b, onChange }: { b: Booking; onChange: (b: Booking) => v
         </Button>
       </>
     )
-  } else if (b.status === 'CANCELLED' && b.refundAmount != null && !b.refundedAt) {
+  } else if (b.status === 'CANCELLED' && !!b.refundAmount && !b.refundedAt) {
     body = (
       <>
         <h2 className="t-title">환불 송금</h2>

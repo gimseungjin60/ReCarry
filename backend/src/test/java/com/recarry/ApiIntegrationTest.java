@@ -772,7 +772,10 @@ class ApiIntegrationTest {
 		String confirmed = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
 		String requested = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
 		String rejected = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
+		String paidCancelled = call("POST", "/api/bookings", user, booking("20", null, window(3), null)).body().get("bookingNumber").asString();
 		confirmPaid(admin, confirmed);
+		confirmPaid(admin, paidCancelled);
+		call("POST", "/api/bookings/" + paidCancelled + "/cancel", user, null);
 		call("PATCH", "/api/admin/bookings/" + rejected + "/status", admin, java.util.Map.of("status", "CANCELLED"));
 		// 관리자 계정은 탈퇴할 수 없다
 		assertThat(call("POST", "/api/users/me/withdraw", admin, java.util.Map.of("password", ADMIN_PASSWORD)).code())
@@ -798,6 +801,8 @@ class ApiIntegrationTest {
 		assertThat(rej.get("cancel_reason")).isEqualTo("REJECTED");
 		assertThat(rej.get("address")).isEqualTo("");
 		assertThat(jdbc.queryForObject("SELECT address FROM bookings WHERE booking_number = ?", String.class, confirmed)).isNotEmpty();
+		// 입금 후 고객이 취소한 예약도 환불 송금 연락을 위해 남긴다
+		assertThat(jdbc.queryForObject("SELECT phone FROM bookings WHERE booking_number = ?", String.class, paidCancelled)).isNotEmpty();
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE email = ?", Integer.class, email)).isZero();
 		// 같은 이메일로 다시 가입할 수 있다
 		assertThat(call("POST", "/api/auth/signup", null, signupBody).status()).isEqualTo(201);

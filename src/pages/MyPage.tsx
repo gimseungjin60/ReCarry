@@ -68,7 +68,7 @@ export function MyPage() {
                     </span>
                     <span className="st">
                       <span className="tag">{BOOKING_STATUS[b.status]}</span>
-                      {won(b.totalPrice)}
+                      {won(b.amountDue || b.totalPrice)}
                     </span>
                   </Link>
                 </li>

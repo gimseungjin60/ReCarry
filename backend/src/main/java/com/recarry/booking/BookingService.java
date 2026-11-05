@@ -247,7 +247,7 @@ public class BookingService {
 		for (Booking b : mine) {
 			if (b.getStatus() == BookingStatus.REQUESTED) b.moveTo(BookingStatus.CANCELLED, clock.instant(), Booking.CancelReason.USER);
 			if (b.getStatus() == BookingStatus.CANCELLED && b.getCancelReason() != null
-					&& b.getCancelReason().beforePayment()) {
+					&& b.getCancelReason().beforePayment() && !b.isPaid()) {
 				b.eraseRecipient();
 			}
 		}

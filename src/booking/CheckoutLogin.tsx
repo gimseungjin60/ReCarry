@@ -12,7 +12,7 @@ export default function CheckoutLogin({ kakao }: { kakao: boolean }) {
   return (
     <section className="checkout-login" aria-labelledby="ck-title">
       <p className="t-title" id="ck-title">
-        로그인하면 고른 내용 그대로 예약 요청이 접수됩니다.
+        로그인하면 고른 내용 그대로 이 화면으로 돌아옵니다. '예약 요청하기'를 누르면 접수됩니다.
       </p>
       <p className="small" style={{ marginTop: 6 }}>
         예약 확인 · 입금 안내 · 환불을 위해 회원만 예약할 수 있습니다.
